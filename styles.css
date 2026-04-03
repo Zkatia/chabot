@@ -265,6 +265,435 @@
     color: #4e6a84;
 }
 
+.local-astusse-chatapp {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 1.25rem;
+    min-height: 72vh;
+    max-width: 1440px;
+}
+
+.local-astusse-chatapp-sidebar,
+.local-astusse-chatapp-main {
+    border: 1px solid #d7e4ee;
+    border-radius: 28px;
+    box-shadow: 0 24px 54px rgba(15, 23, 42, 0.08);
+}
+
+.local-astusse-chatapp-sidebar {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.15rem;
+    background: linear-gradient(180deg, #17324b 0%, #102538 100%);
+    color: #eff6ff;
+}
+
+.local-astusse-chatapp-brand-kicker,
+.local-astusse-chatapp-kicker {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.local-astusse-chatapp-brand-kicker {
+    background: rgba(148, 197, 255, 0.16);
+    color: #d7ecff;
+}
+
+.local-astusse-chatapp-brand h2 {
+    margin: 0.8rem 0 0.35rem;
+    color: #ffffff;
+    font-size: 1.6rem;
+}
+
+.local-astusse-chatapp-brand p {
+    margin: 0;
+    color: rgba(226, 232, 240, 0.82);
+    line-height: 1.5;
+}
+
+.local-astusse-chatapp-new {
+    width: 100%;
+    min-height: 3rem;
+    border: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ed6b2f 0%, #f58e46 100%);
+    box-shadow: 0 18px 34px rgba(237, 107, 47, 0.22);
+    font-weight: 700;
+}
+
+.local-astusse-chatapp-sidebar-section {
+    min-height: 0;
+}
+
+.local-astusse-chatapp-sidebar-heading {
+    margin-bottom: 0.7rem;
+    color: rgba(226, 232, 240, 0.72);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.local-astusse-chatapp-threadlist {
+    display: grid;
+    gap: 0.65rem;
+    max-height: 100%;
+    overflow: auto;
+    padding-right: 0.1rem;
+}
+
+.local-astusse-chatapp-thread,
+.local-astusse-chatapp-sidebar-empty {
+    width: 100%;
+    padding: 0.9rem 0.95rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.local-astusse-chatapp-thread {
+    display: grid;
+    gap: 0.3rem;
+    color: #eff6ff;
+    text-align: left;
+    transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.local-astusse-chatapp-thread strong {
+    font-size: 0.96rem;
+}
+
+.local-astusse-chatapp-thread span,
+.local-astusse-chatapp-sidebar-empty span {
+    color: rgba(226, 232, 240, 0.75);
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.local-astusse-chatapp-thread:hover,
+.local-astusse-chatapp-thread:focus {
+    border-color: rgba(148, 197, 255, 0.45);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.local-astusse-chatapp-thread.is-active {
+    border-color: rgba(148, 197, 255, 0.4);
+    background: rgba(148, 197, 255, 0.12);
+}
+
+.local-astusse-chatapp-sidebar-empty {
+    color: rgba(226, 232, 240, 0.82);
+}
+
+.local-astusse-chatapp-sidebar-empty strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #ffffff;
+}
+
+.local-astusse-chatapp-main {
+    display: grid;
+    grid-template-rows: auto auto minmax(340px, 1fr) auto;
+    gap: 1rem;
+    padding: 1.15rem;
+    background:
+        radial-gradient(circle at top right, rgba(23, 119, 140, 0.16), transparent 34%),
+        linear-gradient(145deg, #f3f9ff 0%, #eff7f2 52%, #f8fcff 100%);
+}
+
+.local-astusse-chatapp-topbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.local-astusse-chatapp-kicker {
+    background: rgba(18, 86, 128, 0.1);
+    color: #15567d;
+}
+
+.local-astusse-chatapp-topbar-copy h1 {
+    margin: 0.5rem 0 0.35rem;
+    color: #13304d;
+    font-size: clamp(1.8rem, 2.4vw, 2.45rem);
+    line-height: 1.05;
+}
+
+.local-astusse-chatapp-topbar-copy p {
+    margin: 0;
+    max-width: 720px;
+    color: #46627c;
+    line-height: 1.55;
+}
+
+.local-astusse-chatapp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.62rem 0.95rem;
+    border: 1px solid rgba(18, 86, 128, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #1a597f;
+    font-weight: 600;
+}
+
+.local-astusse-chatapp-status::before {
+    content: "";
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 0.28rem rgba(34, 197, 94, 0.15);
+}
+
+.local-astusse-chatapp-status.is-busy::before {
+    background: #f59e0b;
+    box-shadow: 0 0 0 0.28rem rgba(245, 158, 11, 0.14);
+}
+
+.local-astusse-chatapp-status.is-error::before {
+    background: #ef4444;
+    box-shadow: 0 0 0 0.28rem rgba(239, 68, 68, 0.14);
+}
+
+.local-astusse-chatapp-context {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.local-astusse-chatapp-context-card {
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(214, 228, 238, 0.95);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.84);
+}
+
+.local-astusse-chatapp-context-label {
+    display: block;
+    margin-bottom: 0.28rem;
+    color: #63788e;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.local-astusse-chatapp-context-card strong {
+    color: #16324d;
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.local-astusse-chatapp-context-card.is-valid {
+    border-color: rgba(34, 197, 94, 0.22);
+    background: rgba(240, 253, 244, 0.86);
+}
+
+.local-astusse-chatapp-context-card.is-invalid {
+    border-color: rgba(245, 158, 11, 0.25);
+    background: rgba(255, 251, 235, 0.9);
+}
+
+.local-astusse-chatapp-context-card.is-missing {
+    border-color: rgba(148, 163, 184, 0.28);
+    background: rgba(248, 250, 252, 0.95);
+}
+
+.local-astusse-chatapp-messages {
+    min-height: 0;
+    padding: 0.5rem 0.15rem 0.35rem;
+    overflow: auto;
+}
+
+.local-astusse-chatapp-empty {
+    padding: 2.1rem 1.5rem;
+    border: 1px dashed #bed1e2;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.local-astusse-chatapp-empty strong {
+    display: block;
+    margin-bottom: 0.6rem;
+    color: #16324d;
+    font-size: 1.15rem;
+}
+
+.local-astusse-chatapp-empty p {
+    margin: 0;
+    max-width: 720px;
+    color: #516d88;
+    line-height: 1.55;
+}
+
+.local-astusse-chatapp-message {
+    display: grid;
+    justify-items: start;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+}
+
+.local-astusse-chatapp-message.is-user {
+    justify-items: end;
+}
+
+.local-astusse-chatapp-message-role {
+    color: #6a8096;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.local-astusse-chatapp-bubble {
+    max-width: min(760px, 94%);
+    padding: 1rem 1.1rem;
+    border: 1px solid #d8e5ef;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #16324d;
+    line-height: 1.65;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+}
+
+.local-astusse-chatapp-message.is-user .local-astusse-chatapp-bubble {
+    border-color: rgba(23, 119, 140, 0.24);
+    background: linear-gradient(135deg, #17778c 0%, #1f8c7f 100%);
+    color: #fff;
+}
+
+.local-astusse-chatapp-message.is-pending .local-astusse-chatapp-bubble {
+    color: #5b7186;
+    font-style: italic;
+}
+
+.local-astusse-chatapp-message.is-error .local-astusse-chatapp-bubble {
+    border-color: rgba(239, 68, 68, 0.2);
+    background: rgba(254, 242, 242, 0.94);
+    color: #b42318;
+}
+
+.local-astusse-chatapp-details {
+    width: min(760px, 94%);
+    border: 1px solid #d8e5ef;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.local-astusse-chatapp-details summary {
+    padding: 0.8rem 0.95rem;
+    color: #37516a;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.local-astusse-chatapp-details-body {
+    padding: 0 0.95rem 0.9rem;
+    color: #4f6a83;
+    line-height: 1.5;
+}
+
+.local-astusse-chatapp-composer {
+    display: grid;
+    gap: 0.95rem;
+    padding: 1rem;
+    border: 1px solid rgba(214, 228, 238, 0.95);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.local-astusse-chatapp-controls {
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.local-astusse-chatapp-field label {
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    color: #18324a;
+    font-weight: 700;
+}
+
+.local-astusse-chatapp-field .custom-select,
+.local-astusse-chatapp-field textarea {
+    width: 100%;
+    border: 1px solid #c8d8e6;
+    border-radius: 18px;
+    background: #fff;
+    color: #16324d;
+}
+
+.local-astusse-chatapp-field .custom-select {
+    min-height: 3rem;
+}
+
+.local-astusse-chatapp-field textarea {
+    min-height: 8rem;
+    padding: 1rem 1.05rem;
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.local-astusse-chatapp-field-note,
+.local-astusse-chatapp-hint {
+    margin: 0;
+    color: #5b738b;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.local-astusse-chatapp-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+}
+
+.local-astusse-chatapp-send {
+    min-width: 180px;
+    min-height: 3.15rem;
+    border: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #d9552e 0%, #ef8544 100%);
+    box-shadow: 0 18px 32px rgba(217, 85, 46, 0.2);
+    font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+    .local-astusse-chatapp {
+        grid-template-columns: 1fr;
+    }
+
+    .local-astusse-chatapp-sidebar {
+        grid-template-rows: auto auto auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .local-astusse-chatapp-topbar,
+    .local-astusse-chatapp-actions {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .local-astusse-chatapp-send {
+        width: 100%;
+    }
+}
+
 .local-astusse-trainerscope-form {
     display: grid;
     gap: 1rem;

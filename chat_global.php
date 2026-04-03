@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Course chat page for local_astusse.
+ * Global chat page for local_astusse.
  *
  * @package     local_astusse
  * @copyright   2026
@@ -26,39 +26,43 @@ require_once(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/chat_ui.php');
 
-$courseid = required_param('courseid', PARAM_INT);
-$course = get_course($courseid);
-$coursecontext = context_course::instance($course->id);
+require_login();
 
-require_login($course);
-require_capability('local/astusse:usechat', $coursecontext);
+$courses = local_astusse_get_chat_accessible_courses($USER);
+if (!$courses) {
+    throw new moodle_exception('chat:global_no_courses', 'local_astusse');
+}
 
-$referencestatus = \local_astusse\reference_trainer_service::get_status($courseid);
-$showreferencecontext = has_capability('local/astusse:managereferencetrainer', $coursecontext);
+$coursemetas = [];
+foreach ($courses as $courseinfo) {
+    $coursecontext = $courseinfo['context'];
+    $course = get_course((int)$courseinfo['id']);
+    $referencestatus = \local_astusse\reference_trainer_service::get_status((int)$course->id);
+    $showreferencecontext = has_capability('local/astusse:managereferencetrainer', $coursecontext);
+    $coursemetas[] = local_astusse_build_chat_course_meta(
+        $course,
+        $referencestatus,
+        $showreferencecontext,
+        false
+    );
+}
 
-$PAGE->set_context($coursecontext);
-$PAGE->set_url(new moodle_url('/local/astusse/chat.php', ['courseid' => $courseid]));
-$PAGE->set_pagelayout('incourse');
-$PAGE->set_title(get_string('chat:title', 'local_astusse'));
-$PAGE->set_heading(format_string($course->fullname));
+$PAGE->set_context(context_system::instance());
+$PAGE->set_url(new moodle_url('/local/astusse/chat_global.php'));
+$PAGE->set_pagelayout('mydashboard');
+$PAGE->set_title(get_string('chat:global_title', 'local_astusse'));
+$PAGE->set_heading(get_string('chat:global_heading', 'local_astusse'));
 $PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
-
-$coursemeta = local_astusse_build_chat_course_meta(
-    $course,
-    $referencestatus,
-    $showreferencecontext,
-    true
-);
 
 echo $OUTPUT->header();
 local_astusse_render_chat_ui([
-    'pageMode' => 'course',
+    'pageMode' => 'global',
     'endpoint' => (new moodle_url('/local/astusse/chat_api.php'))->out(false),
     'sesskey' => sesskey(),
     'storageKey' => 'local_astusse_chat_threads_v4',
-    'lockedCourse' => true,
-    'selectedCourseId' => (string)$courseid,
-    'courses' => [$coursemeta],
+    'lockedCourse' => false,
+    'selectedCourseId' => '',
+    'courses' => $coursemetas,
     'defaults' => [
         'agentType' => 'explicatif',
     ],

@@ -681,3 +681,43 @@ function local_astusse_extend_navigation_course(
         }
     }
 }
+
+/**
+ * Return courses where the user can access ASTUSSE chat.
+ *
+ * @param stdClass $user
+ * @return array<int,array<string,mixed>>
+ */
+function local_astusse_get_chat_accessible_courses(stdClass $user): array {
+    global $CFG;
+
+    require_once($CFG->libdir . '/enrollib.php');
+
+    $courses = enrol_get_users_courses($user->id, true, 'id,fullname,shortname');
+    $available = [];
+
+    foreach ($courses as $course) {
+        $courseid = (int)$course->id;
+        if ($courseid === SITEID) {
+            continue;
+        }
+
+        $context = context_course::instance($courseid);
+        if (!has_capability('local/astusse:usechat', $context, $user->id)) {
+            continue;
+        }
+
+        $available[$courseid] = [
+            'id' => $courseid,
+            'fullname' => format_string($course->fullname, true, ['context' => $context]),
+            'shortname' => format_string($course->shortname ?? '', true, ['context' => $context]),
+            'context' => $context,
+        ];
+    }
+
+    uasort($available, static function(array $left, array $right): int {
+        return strnatcasecmp($left['fullname'], $right['fullname']);
+    });
+
+    return array_values($available);
+}
