@@ -145,7 +145,8 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
 
 $client = new \local_astusse\api_client();
-$referencestatus = \local_astusse\reference_trainer_service::get_status($courseid);
+$referencecontext = local_astusse_get_reference_trainer_context($courseid);
+$referencestatus = $referencecontext['status'];
 $error = '';
 $success = '';
 $errordetails = [];

@@ -77,6 +77,19 @@ if ($hassiteconfig) {
         PARAM_INT
     ));
 
+    $settings->add(new admin_setting_configselect(
+        'local_astusse/chat_history_ttl',
+        get_string('chat_history_ttl', 'local_astusse'),
+        get_string('chat_history_ttl_desc', 'local_astusse'),
+        'PT24H',
+        [
+            'PT24H' => get_string('chat_history_ttl_24h', 'local_astusse'),
+            'PT48H' => get_string('chat_history_ttl_48h', 'local_astusse'),
+            'PT72H' => get_string('chat_history_ttl_72h', 'local_astusse'),
+            'unlimited' => get_string('chat_history_ttl_unlimited', 'local_astusse'),
+        ]
+    ));
+
     $keydir = $CFG->dataroot . '/astusse_jwt';
     $settings->add(new admin_setting_description(
         'local_astusse/key_directory',

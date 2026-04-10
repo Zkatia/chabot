@@ -106,8 +106,8 @@ if ($sessionid === '') {
     ], 400);
 }
 
-$referencestatus = \local_astusse\reference_trainer_service::get_status($courseid);
-$referencetrainerid = $referencestatus['state'] === 'valid' ? (string)$referencestatus['trainerid'] : null;
+$referencecontext = local_astusse_get_reference_trainer_context($courseid);
+$referencetrainerid = $referencecontext['trainerid'];
 
 try {
     global $USER;

@@ -361,10 +361,24 @@
 
 .local-astusse-chatapp-thread {
     display: grid;
-    gap: 0.3rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    align-items: start;
     color: #eff6ff;
     text-align: left;
     transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.local-astusse-chatapp-thread-main {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
 }
 
 .local-astusse-chatapp-thread strong {
@@ -378,6 +392,20 @@
     line-height: 1.4;
 }
 
+.local-astusse-chatapp-thread-delete {
+    align-self: center;
+    padding: 0.38rem 0.58rem;
+    border: 1px solid rgba(248, 113, 113, 0.28);
+    border-radius: 999px;
+    background: rgba(127, 29, 29, 0.16);
+    color: #fecaca;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
 .local-astusse-chatapp-thread:hover,
 .local-astusse-chatapp-thread:focus {
     border-color: rgba(148, 197, 255, 0.45);
@@ -385,9 +413,22 @@
     transform: translateY(-1px);
 }
 
+.local-astusse-chatapp-thread-main:focus-visible,
+.local-astusse-chatapp-thread-delete:focus-visible {
+    outline: 2px solid rgba(191, 219, 254, 0.9);
+    outline-offset: 2px;
+}
+
 .local-astusse-chatapp-thread.is-active {
     border-color: rgba(148, 197, 255, 0.4);
     background: rgba(148, 197, 255, 0.12);
+}
+
+.local-astusse-chatapp-thread-delete:hover,
+.local-astusse-chatapp-thread-delete:focus {
+    border-color: rgba(252, 165, 165, 0.45);
+    background: rgba(127, 29, 29, 0.26);
+    color: #fee2e2;
 }
 
 .local-astusse-chatapp-sidebar-empty {
@@ -572,6 +613,80 @@
     border-color: rgba(23, 119, 140, 0.24);
     background: linear-gradient(135deg, #17778c 0%, #1f8c7f 100%);
     color: #fff;
+}
+
+/* Markdown rendering inside assistant bubbles */
+.local-astusse-chatapp-bubble.is-markdown p {
+    margin: 0 0 0.6em;
+}
+.local-astusse-chatapp-bubble.is-markdown p:last-child {
+    margin-bottom: 0;
+}
+.local-astusse-chatapp-bubble.is-markdown ul,
+.local-astusse-chatapp-bubble.is-markdown ol {
+    margin: 0.4em 0 0.6em 1.4em;
+    padding: 0;
+}
+.local-astusse-chatapp-bubble.is-markdown li {
+    margin-bottom: 0.25em;
+}
+.local-astusse-chatapp-bubble.is-markdown strong {
+    font-weight: 700;
+    color: #0f2d45;
+}
+.local-astusse-chatapp-bubble.is-markdown em {
+    font-style: italic;
+    color: #2e5a78;
+}
+.local-astusse-chatapp-bubble.is-markdown code {
+    padding: 0.15em 0.4em;
+    border-radius: 6px;
+    background: rgba(15, 45, 80, 0.08);
+    color: #0f4c75;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.88em;
+}
+.local-astusse-chatapp-bubble.is-markdown pre {
+    margin: 0.6em 0;
+    padding: 0.9em 1em;
+    border-radius: 12px;
+    background: #0f1e2e;
+    overflow-x: auto;
+}
+.local-astusse-chatapp-bubble.is-markdown pre code {
+    padding: 0;
+    background: none;
+    color: #e2f0ff;
+    font-size: 0.86em;
+    line-height: 1.6;
+}
+.local-astusse-chatapp-bubble.is-markdown blockquote {
+    margin: 0.5em 0;
+    padding: 0.5em 0.9em;
+    border-left: 3px solid #17778c;
+    background: rgba(23, 119, 140, 0.06);
+    color: #2e5a78;
+    border-radius: 0 8px 8px 0;
+}
+.local-astusse-chatapp-bubble.is-markdown h1,
+.local-astusse-chatapp-bubble.is-markdown h2,
+.local-astusse-chatapp-bubble.is-markdown h3 {
+    margin: 0.6em 0 0.3em;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #0f2d45;
+}
+.local-astusse-chatapp-bubble.is-markdown h1 { font-size: 1.15em; }
+.local-astusse-chatapp-bubble.is-markdown h2 { font-size: 1.05em; }
+.local-astusse-chatapp-bubble.is-markdown h3 { font-size: 0.98em; }
+.local-astusse-chatapp-bubble.is-markdown a {
+    color: #17778c;
+    text-decoration: underline;
+}
+.local-astusse-chatapp-bubble.is-markdown hr {
+    margin: 0.8em 0;
+    border: none;
+    border-top: 1px solid #d8e5ef;
 }
 
 .local-astusse-chatapp-message.is-pending .local-astusse-chatapp-bubble {

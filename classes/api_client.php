@@ -30,6 +30,8 @@ defined('MOODLE_INTERNAL') || die();
  * API client to validate Moodle -> JWT -> Gateway chain.
  */
 class api_client {
+    private const CHAT_HISTORY_TTL_HEADER = 'X-Chat-History-Ttl';
+
     /** @var string */
     private $baseurl;
     /** @var int */
@@ -101,36 +103,149 @@ class api_client {
             throw new \Exception('Unable to generate JWT token for current user.');
         }
 
-        $message = trim($message);
-        $agenttype = trim($agenttype);
-        $sessionid = trim($sessionid);
-        $courseid = trim($courseid);
-        $trainerid = $trainerid !== null ? trim($trainerid) : null;
+        $payload = $this->build_chat_payload($message, $agenttype, $sessionid, $courseid, $trainerid);
 
-        if ($message === '') {
-            throw new \Exception('Message is required.');
+        $response = $this->request_json('POST', '/api/chat', $token, $payload, $this->get_chat_timeout_seconds());
+        $status = (int)($response['status'] ?? 0);
+        if ($status < 200 || $status >= 300) {
+            throw new \Exception($this->extract_error_message($response));
         }
-        if (!in_array($agenttype, ['explicatif', 'socratique'], true)) {
-            throw new \Exception('Agent type must be explicatif or socratique.');
+
+        return $response;
+    }
+
+    /**
+     * Stream one learner chat message to ASTUSSE API.
+     *
+     * The callback receives raw SSE bytes exactly as returned by the gateway.
+     * Return false from the callback to abort the upstream request.
+     *
+     * @param \stdClass $user
+     * @param string $message
+     * @param string $agenttype
+     * @param string $sessionid
+     * @param string $courseid
+     * @param string|null $trainerid
+     * @param callable $onchunk
+     * @return array
+     */
+    public function stream_message_for_user(
+        \stdClass $user,
+        string $message,
+        string $agenttype,
+        string $sessionid,
+        string $courseid,
+        ?string $trainerid,
+        callable $onchunk
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
         }
-        if ($sessionid === '') {
-            throw new \Exception('Session ID is required.');
+
+        $payload = $this->build_chat_payload($message, $agenttype, $sessionid, $courseid, $trainerid);
+
+        return $this->request_stream(
+            'POST',
+            '/api/chat/stream',
+            $token,
+            $payload,
+            $onchunk,
+            $this->get_stream_timeout_seconds()
+        );
+    }
+
+    /**
+     * List stored chat sessions for one course.
+     *
+     * @param \stdClass $user
+     * @param string $courseid
+     * @return array
+     */
+    public function list_chat_sessions_for_user(\stdClass $user, string $courseid): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
         }
+
+        $courseid = trim($courseid);
         if ($courseid === '') {
             throw new \Exception('Course ID is required.');
         }
 
-        $payload = [
-            'message' => $message,
-            'agentType' => $agenttype,
-            'sessionId' => $sessionid,
-            'courseId' => $courseid,
-        ];
-        if ($trainerid !== null && $trainerid !== '') {
-            $payload['trainerId'] = $trainerid;
+        $response = $this->request_json(
+            'GET',
+            '/api/chat/sessions?courseId=' . rawurlencode($courseid),
+            $token,
+            null,
+            $this->get_chat_timeout_seconds()
+        );
+        $status = (int)($response['status'] ?? 0);
+        if ($status < 200 || $status >= 300) {
+            throw new \Exception($this->extract_error_message($response));
         }
 
-        $response = $this->request_json('POST', '/api/chat', $token, $payload, $this->get_chat_timeout_seconds());
+        return $response;
+    }
+
+    /**
+     * Fetch one stored chat history by session.
+     *
+     * @param \stdClass $user
+     * @param string $sessionid
+     * @return array
+     */
+    public function get_chat_history_for_user(\stdClass $user, string $sessionid): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+
+        $sessionid = trim($sessionid);
+        if ($sessionid === '') {
+            throw new \Exception('Session ID is required.');
+        }
+
+        $response = $this->request_json(
+            'GET',
+            '/api/chat/history?sessionId=' . rawurlencode($sessionid),
+            $token,
+            null,
+            $this->get_chat_timeout_seconds()
+        );
+        $status = (int)($response['status'] ?? 0);
+        if ($status < 200 || $status >= 300) {
+            throw new \Exception($this->extract_error_message($response));
+        }
+
+        return $response;
+    }
+
+    /**
+     * Delete one stored chat history by session.
+     *
+     * @param \stdClass $user
+     * @param string $sessionid
+     * @return array
+     */
+    public function delete_chat_history_for_user(\stdClass $user, string $sessionid): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+
+        $sessionid = trim($sessionid);
+        if ($sessionid === '') {
+            throw new \Exception('Session ID is required.');
+        }
+
+        $response = $this->request_json(
+            'DELETE',
+            '/api/chat/history?sessionId=' . rawurlencode($sessionid),
+            $token,
+            null,
+            $this->get_chat_timeout_seconds()
+        );
         $status = (int)($response['status'] ?? 0);
         if ($status < 200 || $status >= 300) {
             throw new \Exception($this->extract_error_message($response));
@@ -248,16 +363,18 @@ class api_client {
     }
 
     /**
-     * Fetch a policy snapshot from backend using trainer scope endpoint.
-     *
-     * Backend does not expose a dedicated GET /api/admin/scope/policy endpoint yet.
-     * We read policy flags from trainer scope response.
+     * Fetch the global scope policy from the admin endpoint.
      *
      * @param \stdClass $user
      * @return array
      */
     public function get_scope_policy_snapshot_for_user(\stdClass $user): array {
-        return $this->get_trainer_scope_for_user($user, (string)$user->id);
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+
+        return $this->request_json('GET', '/api/admin/scope/policy', $token, null);
     }
 
     /**
@@ -381,13 +498,22 @@ class api_client {
         ?int $timeoutseconds = null
     ): array {
         $url = $this->baseurl . $path;
-        $headers = [
-            'Authorization: Bearer ' . $token,
-            'Accept: application/json',
-        ];
-        if ($payload !== null) {
-            $headers[] = 'Content-Type: application/json';
+
+        // === DEBUG: decode and log JWT payload before sending ===
+        $jwtparts = explode('.', $token);
+        if (count($jwtparts) === 3) {
+            $decodedpayload = json_decode(base64_decode(strtr($jwtparts[1], '-_', '+/')), true);
+            error_log('local_astusse DEBUG request_json: ' . strtoupper($method) . ' ' . $path);
+            error_log('local_astusse DEBUG JWT sub=' . ($decodedpayload['sub'] ?? '?')
+                . ' roles=' . json_encode($decodedpayload['roles'] ?? [])
+                . ' iss=' . ($decodedpayload['iss'] ?? '?')
+                . ' aud=' . ($decodedpayload['aud'] ?? '?')
+                . ' exp=' . ($decodedpayload['exp'] ?? '?')
+            );
         }
+        // === END DEBUG ===
+
+        $headers = $this->build_request_headers($token, 'application/json', $payload !== null, $path);
 
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -410,6 +536,13 @@ class api_client {
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        // === DEBUG: log response status and body preview ===
+        error_log('local_astusse DEBUG response: HTTP ' . $status . ' for ' . strtoupper($method) . ' ' . $path);
+        if ($status >= 400) {
+            error_log('local_astusse DEBUG response body: ' . substr($body, 0, 1000));
+        }
+        // === END DEBUG ===
+
         $json = json_decode($body, true);
         $jsonerror = json_last_error();
         $jsonerrormessage = $jsonerror === JSON_ERROR_NONE ? '' : json_last_error_msg();
@@ -429,6 +562,160 @@ class api_client {
     }
 
     /**
+     * Execute streaming HTTP request.
+     *
+     * @param string $method
+     * @param string $path
+     * @param string $token
+     * @param array|null $payload
+     * @param callable $onchunk
+     * @param int|null $timeoutseconds
+     * @return array
+     */
+    private function request_stream(
+        string $method,
+        string $path,
+        string $token,
+        ?array $payload,
+        callable $onchunk,
+        ?int $timeoutseconds = null
+    ): array {
+        $url = $this->baseurl . $path;
+        $headers = $this->build_request_headers($token, 'text/event-stream', $payload !== null, $path);
+
+        $httpstatus = 0;
+        $responsecontenttype = '';
+        $bufferedresponse = '';
+        $forwardedbytes = 0;
+        $abortedbycallback = false;
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $this->normalize_timeout_seconds($timeoutseconds));
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->get_connect_timeout_seconds($timeoutseconds));
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        if ($payload !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        }
+
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($ch, $headerline) use (&$httpstatus, &$responsecontenttype) {
+            $length = strlen($headerline);
+            $trimmed = trim($headerline);
+
+            if ($trimmed === '') {
+                return $length;
+            }
+
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $trimmed, $matches)) {
+                $httpstatus = (int)$matches[1];
+                return $length;
+            }
+
+            if (stripos($trimmed, 'Content-Type:') === 0) {
+                $responsecontenttype = trim(substr($trimmed, strlen('Content-Type:')));
+            }
+
+            return $length;
+        });
+
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (
+            &$httpstatus,
+            &$responsecontenttype,
+            &$bufferedresponse,
+            &$forwardedbytes,
+            &$abortedbycallback,
+            $onchunk
+        ) {
+            $isupstreamsse = stripos($responsecontenttype, 'text/event-stream') !== false;
+            $issuccess = $httpstatus >= 200 && $httpstatus < 300;
+
+            if ($issuccess && $isupstreamsse) {
+                $accepted = $onchunk($data);
+                if ($accepted === false) {
+                    $abortedbycallback = true;
+                    return 0;
+                }
+                $forwardedbytes += strlen($data);
+                return strlen($data);
+            }
+
+            $bufferedresponse .= $data;
+            if (strlen($bufferedresponse) > 8192) {
+                $bufferedresponse = substr($bufferedresponse, 0, 8192);
+            }
+            return strlen($data);
+        });
+
+        $body = curl_exec($ch);
+        $curlerrno = curl_errno($ch);
+        $curlerror = curl_error($ch);
+        $httpstatus = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $effectivecontenttype = $responsecontenttype !== ''
+            ? $responsecontenttype
+            : (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+
+        if ($body === false && !($abortedbycallback && $curlerrno === CURLE_WRITE_ERROR)) {
+            throw new \Exception('Gateway HTTP error: ' . $curlerror);
+        }
+
+        return [
+            'url' => $url,
+            'status' => $httpstatus,
+            'content_type' => $effectivecontenttype,
+            'body_preview' => $bufferedresponse,
+            'bytes_forwarded' => $forwardedbytes,
+            'aborted_by_callback' => $abortedbycallback,
+            'curl_errno' => $curlerrno,
+            'curl_error' => $curlerror,
+        ];
+    }
+
+    /**
+     * Build common request headers and attach optional chat history TTL override.
+     *
+     * @param string $token
+     * @param string $accept
+     * @param bool $hasjsonbody
+     * @param string $path
+     * @return array
+     */
+    private function build_request_headers(string $token, string $accept, bool $hasjsonbody, string $path): array {
+        $headers = [
+            'Authorization: Bearer ' . $token,
+            'Accept: ' . $accept,
+        ];
+        if ($hasjsonbody) {
+            $headers[] = 'Content-Type: application/json';
+        }
+
+        $ttloverride = $this->get_chat_history_ttl_header_value($path);
+        if ($ttloverride !== '') {
+            $headers[] = self::CHAT_HISTORY_TTL_HEADER . ': ' . $ttloverride;
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Return the configured chat history TTL header value for chat endpoints only.
+     *
+     * @param string $path
+     * @return string
+     */
+    private function get_chat_history_ttl_header_value(string $path): string {
+        if (strpos($path, '/api/chat') !== 0) {
+            return '';
+        }
+
+        $configured = trim((string)(get_config('local_astusse', 'chat_history_ttl') ?: 'PT24H'));
+        $allowed = ['PT24H', 'PT48H', 'PT72H', 'unlimited'];
+        return in_array($configured, $allowed, true) ? $configured : 'PT24H';
+    }
+
+    /**
      * Resolve the total timeout used for chat requests.
      *
      * LLM calls regularly exceed 10 seconds in dev, so we enforce a safer floor
@@ -438,6 +725,64 @@ class api_client {
      */
     private function get_chat_timeout_seconds(): int {
         return max($this->timeoutseconds, 30);
+    }
+
+    /**
+     * Resolve the total timeout used for chat streaming requests.
+     *
+     * @return int
+     */
+    private function get_stream_timeout_seconds(): int {
+        return max($this->timeoutseconds, 120);
+    }
+
+    /**
+     * Validate and build the common chat payload.
+     *
+     * @param string $message
+     * @param string $agenttype
+     * @param string $sessionid
+     * @param string $courseid
+     * @param string|null $trainerid
+     * @return array
+     */
+    private function build_chat_payload(
+        string $message,
+        string $agenttype,
+        string $sessionid,
+        string $courseid,
+        ?string $trainerid = null
+    ): array {
+        $message = trim($message);
+        $agenttype = trim($agenttype);
+        $sessionid = trim($sessionid);
+        $courseid = trim($courseid);
+        $trainerid = $trainerid !== null ? trim($trainerid) : null;
+
+        if ($message === '') {
+            throw new \Exception('Message is required.');
+        }
+        if (!in_array($agenttype, ['explicatif', 'socratique'], true)) {
+            throw new \Exception('Agent type must be explicatif or socratique.');
+        }
+        if ($sessionid === '') {
+            throw new \Exception('Session ID is required.');
+        }
+        if ($courseid === '') {
+            throw new \Exception('Course ID is required.');
+        }
+
+        $payload = [
+            'message' => $message,
+            'agentType' => $agenttype,
+            'sessionId' => $sessionid,
+            'courseId' => $courseid,
+        ];
+        if ($trainerid !== null && $trainerid !== '') {
+            $payload['trainerId'] = $trainerid;
+        }
+
+        return $payload;
     }
 
     /**

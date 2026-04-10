@@ -247,7 +247,7 @@ function local_astusse_get_user_roles(stdClass $user): array {
     $roleset = [];
 
     $systemcontext = context_system::instance();
-    if (has_capability('moodle/site:config', $systemcontext, $user->id, false)) {
+    if (is_siteadmin($user->id) || has_capability('moodle/site:config', $systemcontext, $user->id)) {
         $roleset['ADMIN'] = true;
     }
 
@@ -362,6 +362,47 @@ function local_astusse_generate_user_token(stdClass $user) {
 }
 
 /**
+ * Resolve the reference trainer context attached to one course.
+ *
+ * @param int $courseid
+ * @return array{status: array, trainerid: ?string}
+ */
+function local_astusse_get_reference_trainer_context(int $courseid): array {
+    $status = \local_astusse\reference_trainer_service::get_status($courseid);
+    $trainerid = $status['state'] === 'valid' ? (string)$status['trainerid'] : null;
+
+    return [
+        'status' => $status,
+        'trainerid' => $trainerid,
+    ];
+}
+
+/**
+ * Resolve the user used to sync admin policy toward the backend.
+ *
+ * @return stdClass|null
+ */
+function local_astusse_get_scope_sync_user(): ?stdClass {
+    global $USER;
+
+    $systemcontext = context_system::instance();
+    if (!empty($USER) && !empty($USER->id) && isloggedin() && !isguestuser()) {
+        if (is_siteadmin($USER->id) || has_capability('moodle/site:config', $systemcontext, $USER->id)) {
+            return $USER;
+        }
+    }
+
+    if (function_exists('get_admin')) {
+        $adminuser = get_admin();
+        if (!empty($adminuser) && !empty($adminuser->id)) {
+            return $adminuser;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Sync admin scope policy settings to orchestration API.
  *
  * Called as admin setting updated callback.
@@ -369,22 +410,32 @@ function local_astusse_generate_user_token(stdClass $user) {
  * @return void
  */
 function local_astusse_sync_scope_policy_from_settings(): void {
-    global $USER;
+    error_log('local_astusse DEBUG sync_scope_policy_from_settings: ENTER');
 
-    if (empty($USER) || empty($USER->id) || !isloggedin() || isguestuser()) {
+    $syncuser = local_astusse_get_scope_sync_user();
+    if ($syncuser === null) {
+        error_log('local_astusse DEBUG sync: syncuser is NULL, skipping');
         set_config('last_scope_sync_ok', 0, 'local_astusse');
-        set_config('last_scope_sync_message', 'sync_skipped_no_user', 'local_astusse');
+        set_config('last_scope_sync_message', 'sync_skipped_no_admin_user', 'local_astusse');
         set_config('last_scope_sync_at', time(), 'local_astusse');
         return;
     }
+
+    error_log('local_astusse DEBUG sync: syncuser id=' . $syncuser->id . ' username=' . ($syncuser->username ?? '?'));
 
     try {
         $platformscopeallowed = (bool)(get_config('local_astusse', 'platform_scope_allowed') ?: 0);
         $delegationenabled = (bool)(get_config('local_astusse', 'delegation_enabled') ?: 0);
 
+        error_log('local_astusse DEBUG sync: sending POST /api/admin/scope/policy platformScopeAllowed='
+            . ($platformscopeallowed ? 'true' : 'false') . ' delegationEnabled='
+            . ($delegationenabled ? 'true' : 'false'));
+
         $client = new \local_astusse\api_client();
-        $response = $client->update_scope_policy_for_user($USER, $platformscopeallowed, $delegationenabled);
+        $response = $client->update_scope_policy_for_user($syncuser, $platformscopeallowed, $delegationenabled);
         $status = (int)($response['status'] ?? 0);
+
+        error_log('local_astusse DEBUG sync: POST response status=' . $status);
 
         if ($status < 200 || $status >= 300) {
             $message = $client->extract_error_message($response);
@@ -402,6 +453,7 @@ function local_astusse_sync_scope_policy_from_settings(): void {
         set_config('last_scope_sync_message', 'sync_ok', 'local_astusse');
         set_config('last_scope_sync_at', time(), 'local_astusse');
     } catch (\Throwable $e) {
+        error_log('local_astusse DEBUG sync: exception=' . $e->getMessage());
         set_config('last_scope_sync_ok', 0, 'local_astusse');
         set_config('last_scope_sync_message', 'sync_exception_' . $e->getMessage(), 'local_astusse');
         set_config('last_scope_sync_at', time(), 'local_astusse');
@@ -415,10 +467,57 @@ function local_astusse_sync_scope_policy_from_settings(): void {
  * @return string
  */
 function local_astusse_scope_policy_settings_state_html(): string {
-    global $USER;
-
     $parts = [];
 
+    $localplatform = (bool)(get_config('local_astusse', 'platform_scope_allowed') ?: 0);
+    $localdelegation = (bool)(get_config('local_astusse', 'delegation_enabled') ?: 0);
+
+    // Read backend state first, then sync if there is a mismatch.
+    $backendplatform = null;
+    $backenddelegation = null;
+    $backendfetchok = false;
+
+    try {
+        $syncuser = local_astusse_get_scope_sync_user();
+        if ($syncuser !== null) {
+            $client = new \local_astusse\api_client();
+            $snapshot = $client->get_scope_policy_snapshot_for_user($syncuser);
+            $snapshotstatus = (int)($snapshot['status'] ?? 0);
+            if ($snapshotstatus >= 200 && $snapshotstatus < 300
+                    && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])) {
+                $json = $snapshot['body_json'];
+                $backendplatform = !empty($json['platformScopeAllowed']);
+                $backenddelegation = !empty($json['delegationEnabled']);
+                $backendfetchok = true;
+            }
+        }
+    } catch (\Throwable $e) {
+        // Backend unreachable, handled below.
+    }
+
+    // If backend state differs from local, force a sync POST then re-read.
+    if ($backendfetchok && ($backendplatform !== $localplatform || $backenddelegation !== $localdelegation)) {
+        error_log('local_astusse DEBUG settings_state_html: mismatch detected, forcing sync POST');
+        local_astusse_sync_scope_policy_from_settings();
+
+        // Re-read backend state after sync.
+        try {
+            if ($syncuser !== null) {
+                $snapshot = $client->get_scope_policy_snapshot_for_user($syncuser);
+                $snapshotstatus = (int)($snapshot['status'] ?? 0);
+                if ($snapshotstatus >= 200 && $snapshotstatus < 300
+                        && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])) {
+                    $json = $snapshot['body_json'];
+                    $backendplatform = !empty($json['platformScopeAllowed']);
+                    $backenddelegation = !empty($json['delegationEnabled']);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore re-read failure.
+        }
+    }
+
+    // Build sync status line.
     $lastok = (int)(get_config('local_astusse', 'last_scope_sync_ok') ?: 0);
     $lastmessage = (string)(get_config('local_astusse', 'last_scope_sync_message') ?: '');
     $lastat = (int)(get_config('local_astusse', 'last_scope_sync_at') ?: 0);
@@ -447,19 +546,13 @@ function local_astusse_scope_policy_settings_state_html(): string {
         ])
     );
 
-    $localplatform = (bool)(get_config('local_astusse', 'platform_scope_allowed') ?: 0);
-    $localdelegation = (bool)(get_config('local_astusse', 'delegation_enabled') ?: 0);
-
+    // Build backend comparison block.
     try {
-        if (!empty($USER) && !empty($USER->id) && isloggedin() && !isguestuser()) {
-            $client = new \local_astusse\api_client();
-            $snapshot = $client->get_scope_policy_snapshot_for_user($USER);
-            $status = (int)($snapshot['status'] ?? 0);
-            if ($status >= 200 && $status < 300 && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])) {
-                $json = $snapshot['body_json'];
-                $backendplatform = !empty($json['platformScopeAllowed']);
-                $backenddelegation = !empty($json['delegationEnabled']);
-
+        if ($syncuser === null) {
+            $syncuser = local_astusse_get_scope_sync_user();
+        }
+        if ($syncuser !== null) {
+            if ($backendfetchok) {
                 if ($backendplatform === $localplatform && $backenddelegation === $localdelegation) {
                     $parts[] = html_writer::tag('p', get_string('rag_scope_backend_aligned', 'local_astusse'));
                 } else {
@@ -476,13 +569,13 @@ function local_astusse_scope_policy_settings_state_html(): string {
             } else {
                 $parts[] = html_writer::tag(
                     'p',
-                    get_string('rag_scope_backend_unavailable', 'local_astusse', 'HTTP ' . $status)
+                    get_string('rag_scope_backend_unavailable', 'local_astusse', 'fetch failed')
                 );
             }
         } else {
             $parts[] = html_writer::tag(
                 'p',
-                get_string('rag_scope_backend_unavailable', 'local_astusse', get_string('notloggedin', 'moodle'))
+                get_string('rag_scope_backend_unavailable', 'local_astusse', 'No admin sync user available')
             );
         }
     } catch (\Throwable $e) {

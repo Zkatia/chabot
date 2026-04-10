@@ -1,0 +1,77 @@
+<div class="local-astusse-chatapp" data-page-mode="{{pageMode}}">
+    <aside class="local-astusse-chatapp-sidebar">
+        <div class="local-astusse-chatapp-brand">
+            <span class="local-astusse-chatapp-brand-kicker">ASTUSSE</span>
+            <h2>{{brandTitle}}</h2>
+            <p>{{brandIntro}}</p>
+        </div>
+        <button type="button" id="local-astusse-chatapp-new" class="btn btn-primary local-astusse-chatapp-new">
+            {{newSessionButton}}
+        </button>
+        <div class="local-astusse-chatapp-sidebar-section">
+            <div class="local-astusse-chatapp-sidebar-heading">{{conversationsLabel}}</div>
+            <div id="local-astusse-chatapp-threadlist" class="local-astusse-chatapp-threadlist"></div>
+        </div>
+    </aside>
+
+    <section class="local-astusse-chatapp-main">
+        <header class="local-astusse-chatapp-topbar">
+            <div class="local-astusse-chatapp-topbar-copy">
+                <span class="local-astusse-chatapp-kicker">ASTUSSE</span>
+                <h1>{{heading}}</h1>
+                <p>{{intro}}</p>
+            </div>
+            <div class="local-astusse-chatapp-topbar-side">
+                <span id="local-astusse-chatapp-status" class="local-astusse-chatapp-status">
+                    {{statusReady}}
+                </span>
+            </div>
+        </header>
+
+        <section class="local-astusse-chatapp-context" aria-live="polite">
+            <div class="local-astusse-chatapp-context-card">
+                <span class="local-astusse-chatapp-context-label">{{courseContextLabel}}</span>
+                <strong id="local-astusse-chatapp-course-context"></strong>
+            </div>
+            <div id="local-astusse-chatapp-reference-card" class="local-astusse-chatapp-context-card is-reference">
+                <span class="local-astusse-chatapp-context-label">{{referenceTrainerTitle}}</span>
+                <strong id="local-astusse-chatapp-reference-context"></strong>
+            </div>
+        </section>
+
+        <div id="local-astusse-chatapp-messages" class="local-astusse-chatapp-messages" aria-live="polite"></div>
+
+        <section class="local-astusse-chatapp-composer">
+            <div class="local-astusse-chatapp-controls">
+                <div class="local-astusse-chatapp-field">
+                    <label for="local-astusse-chatapp-course">{{courseLabel}}</label>
+                    <select id="local-astusse-chatapp-course" class="custom-select"></select>
+                    <p id="local-astusse-chatapp-course-note" class="local-astusse-chatapp-field-note"></p>
+                </div>
+                <div class="local-astusse-chatapp-field">
+                    <label for="local-astusse-chatapp-agent">{{agentLabel}}</label>
+                    <select id="local-astusse-chatapp-agent" class="custom-select">
+                        <option value="explicatif">{{agentExplicatif}}</option>
+                        <option value="socratique">{{agentSocratique}}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="local-astusse-chatapp-field">
+                <label for="local-astusse-chatapp-input">{{messageLabel}}</label>
+                <textarea id="local-astusse-chatapp-input" rows="4" placeholder="{{messagePlaceholder}}"></textarea>
+            </div>
+            <div class="local-astusse-chatapp-actions">
+                <p class="local-astusse-chatapp-hint">{{inputHint}}</p>
+                <button type="button" id="local-astusse-chatapp-send" class="btn btn-primary local-astusse-chatapp-send">
+                    {{sendButton}}
+                </button>
+            </div>
+        </section>
+    </section>
+</div>
+
+<script>window.AstusseChatConfig = {{{jsonConfig}}};</script>
+{{#markedCdnUrl}}
+<script src="{{markedCdnUrl}}"></script>
+{{/markedCdnUrl}}
+<script src="{{chatAppJsUrl}}"></script>
