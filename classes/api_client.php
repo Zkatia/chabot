@@ -498,21 +498,6 @@ class api_client {
         ?int $timeoutseconds = null
     ): array {
         $url = $this->baseurl . $path;
-
-        // === DEBUG: decode and log JWT payload before sending ===
-        $jwtparts = explode('.', $token);
-        if (count($jwtparts) === 3) {
-            $decodedpayload = json_decode(base64_decode(strtr($jwtparts[1], '-_', '+/')), true);
-            error_log('local_astusse DEBUG request_json: ' . strtoupper($method) . ' ' . $path);
-            error_log('local_astusse DEBUG JWT sub=' . ($decodedpayload['sub'] ?? '?')
-                . ' roles=' . json_encode($decodedpayload['roles'] ?? [])
-                . ' iss=' . ($decodedpayload['iss'] ?? '?')
-                . ' aud=' . ($decodedpayload['aud'] ?? '?')
-                . ' exp=' . ($decodedpayload['exp'] ?? '?')
-            );
-        }
-        // === END DEBUG ===
-
         $headers = $this->build_request_headers($token, 'application/json', $payload !== null, $path);
 
         $ch = curl_init($url);
@@ -535,13 +520,6 @@ class api_client {
 
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-
-        // === DEBUG: log response status and body preview ===
-        error_log('local_astusse DEBUG response: HTTP ' . $status . ' for ' . strtoupper($method) . ' ' . $path);
-        if ($status >= 400) {
-            error_log('local_astusse DEBUG response body: ' . substr($body, 0, 1000));
-        }
-        // === END DEBUG ===
 
         $json = json_decode($body, true);
         $jsonerror = json_last_error();

@@ -146,6 +146,10 @@ function local_astusse_render_chat_ui(array $config): void {
         'messagePlaceholder'   => $config['strings']['messagePlaceholder'],
         'inputHint'            => $config['strings']['inputHint'],
         'sendButton'           => $config['strings']['sendButton'],
+        'backUrl'              => $isGlobal
+            ? (new moodle_url('/my/'))->out(false)
+            : (new moodle_url('/course/view.php', ['id' => $config['selectedCourseId']]))->out(false),
+        'backLabel'            => get_string('chat:back_to_moodle', 'local_astusse'),
         'jsonConfig'           => json_encode($config, $jsonflags),
         'markedCdnUrl'         => 'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js',
         'chatAppJsUrl'         => (new moodle_url('/local/astusse/js/chat_app.js'))->out(false),

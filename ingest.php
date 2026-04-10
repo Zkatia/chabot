@@ -40,7 +40,62 @@ class local_astusse_ingest_form extends moodleform {
         $mform = $this->_form;
         $availablecourses = $this->_customdata['availablecourses'];
         $filemanageroptions = $this->_customdata['filemanageroptions'];
+        $courseresources = $this->_customdata['courseresources'] ?? [];
 
+        // === Course resources slot (moved to left column by JS) ===
+        $mform->addElement('html', '<div class="local-astusse-resources-slot">');
+        $mform->addElement('html', '<h4>' . get_string('ingest:course_resources_heading', 'local_astusse') . '</h4>');
+        $mform->addElement('html', '<p class="text-muted small">'
+            . get_string('ingest:course_resources_intro', 'local_astusse') . '</p>');
+
+        if (!empty($courseresources)) {
+            // Type filter buttons.
+            $filterhtml = '<div class="local-astusse-resource-filters mb-2">';
+            foreach (['all', 'resource', 'page', 'scorm'] as $ftype) {
+                $label = get_string('ingest:course_resources_filter_' . $ftype, 'local_astusse');
+                $active = $ftype === 'all' ? ' active' : '';
+                $filterhtml .= '<button type="button" class="btn btn-sm btn-outline-secondary local-astusse-filter-btn'
+                    . $active . '" data-filter="' . $ftype . '">' . $label . '</button>';
+            }
+            $filterhtml .= '</div>';
+            $mform->addElement('html', $filterhtml);
+
+            // Resource table.
+            $tablehtml = '<div class="local-astusse-resource-table-wrap">';
+            $tablehtml .= '<table class="local-astusse-resource-table table table-sm table-hover">';
+            $tablehtml .= '<thead><tr>';
+            $tablehtml .= '<th class="local-astusse-col-check">'
+                . '<input type="checkbox" id="local-astusse-select-all"></th>';
+            $tablehtml .= '<th>' . get_string('ingest:course_resources_col_name', 'local_astusse') . '</th>';
+            $tablehtml .= '<th>' . get_string('ingest:course_resources_col_type', 'local_astusse') . '</th>';
+            $tablehtml .= '<th>' . get_string('ingest:course_resources_col_section', 'local_astusse') . '</th>';
+            $tablehtml .= '</tr></thead><tbody>';
+
+            foreach ($courseresources as $resource) {
+                $typelabel = get_string('ingest:course_resources_type_' . $resource['modname'], 'local_astusse');
+                $iconhtml = !empty($resource['icon'])
+                    ? '<img src="' . s($resource['icon']) . '" class="icon iconsmall mr-1" alt="">' : '';
+                $badgeclass = 'badge badge-secondary local-astusse-type-badge';
+                $tablehtml .= '<tr class="local-astusse-resource-row" data-modname="' . $resource['modname'] . '">';
+                $tablehtml .= '<td class="local-astusse-col-check">'
+                    . '<input type="checkbox" name="selectedresources[]" value="' . $resource['cmid']
+                    . '" class="local-astusse-resource-check"></td>';
+                $tablehtml .= '<td>' . $iconhtml . s($resource['name']) . '</td>';
+                $tablehtml .= '<td><span class="' . $badgeclass . '">' . $typelabel . '</span></td>';
+                $tablehtml .= '<td>' . s($resource['sectionname']) . '</td>';
+                $tablehtml .= '</tr>';
+            }
+
+            $tablehtml .= '</tbody></table></div>';
+            $mform->addElement('html', $tablehtml);
+        } else {
+            $mform->addElement('html', '<p class="alert alert-info">'
+                . get_string('ingest:course_resources_empty', 'local_astusse') . '</p>');
+        }
+        $mform->addElement('html', '</div>');
+
+        // === File upload slot (moved below resources by JS) ===
+        $mform->addElement('html', '<div class="local-astusse-upload-slot">');
         $mform->addElement(
             'filemanager',
             'resourcefile',
@@ -48,6 +103,16 @@ class local_astusse_ingest_form extends moodleform {
             null,
             $filemanageroptions
         );
+        $mform->addElement('html', '</div>');
+
+        // Single submit button.
+        $this->add_action_buttons(false, get_string('ingest:submit_button', 'local_astusse'));
+
+        // === Course selector (moved to sidebar by JS) ===
+        $mform->addElement('html', '<div class="local-astusse-course-sidebar-slot">');
+        $mform->addElement('html', '<h4>' . get_string('ingest:courses_label', 'local_astusse') . '</h4>');
+        $mform->addElement('html', '<p class="text-muted small">'
+            . get_string('ingest:courses_help', 'local_astusse') . '</p>');
 
         $autocompleteoptions = [
             'multiple' => true,
@@ -56,14 +121,12 @@ class local_astusse_ingest_form extends moodleform {
         $mform->addElement(
             'autocomplete',
             'courseids',
-            get_string('ingest:courses_label', 'local_astusse'),
+            '',
             $availablecourses,
             $autocompleteoptions
         );
-        $mform->addElement('static', 'courseids_help', '', get_string('ingest:courses_help', 'local_astusse'));
         $mform->setType('courseids', PARAM_RAW);
-
-        $this->add_action_buttons(false, get_string('ingest:submit_button', 'local_astusse'));
+        $mform->addElement('html', '</div>');
     }
 
     /**
@@ -74,24 +137,7 @@ class local_astusse_ingest_form extends moodleform {
      * @return array
      */
     public function validation($data, $files): array {
-        $errors = parent::validation($data, $files);
-
-        $courseids = $data['courseids'] ?? [];
-        if (!is_array($courseids)) {
-            $courseids = [$courseids];
-        }
-        $validcourseids = [];
-        foreach ($courseids as $courseid) {
-            $courseid = (int)$courseid;
-            if ($courseid > 0) {
-                $validcourseids[] = $courseid;
-            }
-        }
-        if (empty($validcourseids)) {
-            $errors['courseids'] = get_string('ingest:error_no_courses', 'local_astusse');
-        }
-
-        return $errors;
+        return parent::validation($data, $files);
     }
 }
 
@@ -195,11 +241,14 @@ if (empty($selectedcourseids)) {
     $selectedcourseids = [(int)$course->id];
 }
 
+$courseresources = local_astusse_get_course_ingestable_resources($courseid);
+
 $form = new local_astusse_ingest_form(
     new moodle_url('/local/astusse/ingest.php', ['courseid' => $courseid]),
     [
         'availablecourses' => $availablecourses,
         'filemanageroptions' => $filemanageroptions,
+        'courseresources' => $courseresources,
     ]
 );
 $formdefaults = [
@@ -209,6 +258,7 @@ $formdefaults = [
 $form->set_data((object)$formdefaults);
 
 if ($formdata = $form->get_data()) {
+    // Resolve target course IDs.
     $allowedids = array_fill_keys(array_map('intval', array_keys($availablecourses)), true);
     $validatedcourseids = [];
     $requestedcourseids = $formdata->courseids ?? [];
@@ -221,76 +271,114 @@ if ($formdata = $form->get_data()) {
             $validatedcourseids[] = $requestedcourseid;
         }
     }
-    $validatedcourseids = array_values(array_unique($validatedcourseids));
-
     if (empty($validatedcourseids)) {
-        $error = get_string('ingest:error_no_courses', 'local_astusse');
-    } else {
-        $fs = get_file_storage();
-        $draftfiles = $fs->get_area_files(
-            $usercontext->id,
-            'user',
-            'draft',
-            (int)$formdata->resourcefile,
-            'id DESC',
-            false
-        );
+        $validatedcourseids = [(int)$course->id];
+    }
 
-        if (empty($draftfiles)) {
-            $error = get_string('ingest:error_no_file', 'local_astusse');
-        } else {
-            $draftfile = reset($draftfiles);
-            $filename = clean_param((string)$draftfile->get_filename(), PARAM_FILE);
-            $mimetype = (string)$draftfile->get_mimetype();
-            $filesize = (int)$draftfile->get_filesize();
+    $okcount = 0;
+    $failcount = 0;
 
-            if ($filename === '' || $filesize <= 0) {
-                $error = get_string('ingest:error_invalid_file', 'local_astusse');
-            } else if ($filesize > 50 * 1024 * 1024) {
-                $error = get_string('ingest:error_file_too_large', 'local_astusse');
-            } else {
-                $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
-                if (!$draftfile->copy_content_to($tmppath)) {
-                    $error = get_string('ingest:error_invalid_file', 'local_astusse');
-                } else {
-                    try {
-                        $result = $client->ingest_document_for_user(
-                            $USER,
-                            $validatedcourseids,
-                            $tmppath,
-                            $filename,
-                            $mimetype
-                        );
-                        $status = (int)($result['status'] ?? 0);
-                        if ($status >= 200 && $status < 300) {
-                            $jobid = (string)($result['body_json']['jobId'] ?? '');
-                            if ($jobid !== '') {
-                                $success = get_string('ingest:save_ok_job', 'local_astusse', s($jobid));
-                            } else {
-                                $success = get_string('ingest:save_ok', 'local_astusse');
-                            }
-                        } else {
-                            $error = local_astusse_ingest_http_error_message($status);
-                            $errordetails[] = get_string('ingest:error_http_status_line', 'local_astusse', (string)$status);
+    // --- 1. Ingest selected course resources ---
+    $selectedcmids = optional_param_array('selectedresources', [], PARAM_INT);
+    $selectedcmids = array_values(array_unique(array_filter(array_map('intval', $selectedcmids))));
 
-                            $backendmessage = trim((string)$client->extract_error_message($result));
-                            if ($backendmessage !== '' && !preg_match('/^HTTP\s+\d+$/', $backendmessage)) {
-                                $errordetails[] = get_string('ingest:error_backend_message', 'local_astusse', s($backendmessage));
-                            }
-
-                            $json = $result['body_json'] ?? null;
-                            $traceid = is_array($json) ? trim((string)($json['traceId'] ?? '')) : '';
-                            if ($traceid !== '') {
-                                $errordetails[] = get_string('ingest:error_traceid_line', 'local_astusse', s($traceid));
-                            }
-                        }
-                    } catch (\Throwable $e) {
-                        $error = get_string('ingest:error_submit', 'local_astusse');
-                        $errordetails[] = get_string('ingest:error_exception_message', 'local_astusse', s($e->getMessage()));
-                    }
-                }
+    foreach ($selectedcmids as $selectedcmid) {
+        $resourcename = '';
+        foreach ($courseresources as $res) {
+            if ((int)$res['cmid'] === $selectedcmid) {
+                $resourcename = $res['name'];
+                break;
             }
         }
+
+        try {
+            $extracted = local_astusse_extract_module_content($selectedcmid, $courseid);
+            if ($extracted === null) {
+                $failcount++;
+                $errordetails[] = get_string('ingest:course_resources_extract_failed', 'local_astusse', $resourcename);
+                continue;
+            }
+
+            $ingestresult = $client->ingest_document_for_user(
+                $USER,
+                $validatedcourseids,
+                $extracted['filepath'],
+                $extracted['filename'],
+                $extracted['mimetype']
+            );
+            $ingeststatus = (int)($ingestresult['status'] ?? 0);
+            if ($ingeststatus >= 200 && $ingeststatus < 300) {
+                $okcount++;
+            } else {
+                $failcount++;
+                $backmsg = $client->extract_error_message($ingestresult);
+                $errordetails[] = $resourcename . ': HTTP ' . $ingeststatus . ' — ' . $backmsg;
+            }
+        } catch (\Throwable $e) {
+            $failcount++;
+            $errordetails[] = $resourcename . ': ' . $e->getMessage();
+        }
+    }
+
+    // --- 2. Ingest uploaded file (if any) ---
+    $fs = get_file_storage();
+    $draftfiles = $fs->get_area_files(
+        $usercontext->id,
+        'user',
+        'draft',
+        (int)$formdata->resourcefile,
+        'id DESC',
+        false
+    );
+
+    if (!empty($draftfiles)) {
+        $draftfile = reset($draftfiles);
+        $filename = clean_param((string)$draftfile->get_filename(), PARAM_FILE);
+        $mimetype = (string)$draftfile->get_mimetype();
+        $filesize = (int)$draftfile->get_filesize();
+
+        if ($filename !== '' && $filesize > 0 && $filesize <= 50 * 1024 * 1024) {
+            $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+            if ($draftfile->copy_content_to($tmppath)) {
+                try {
+                    $result = $client->ingest_document_for_user(
+                        $USER,
+                        $validatedcourseids,
+                        $tmppath,
+                        $filename,
+                        $mimetype
+                    );
+                    $status = (int)($result['status'] ?? 0);
+                    if ($status >= 200 && $status < 300) {
+                        $okcount++;
+                    } else {
+                        $failcount++;
+                        $errordetails[] = $filename . ': ' . local_astusse_ingest_http_error_message($status);
+                    }
+                } catch (\Throwable $e) {
+                    $failcount++;
+                    $errordetails[] = $filename . ': ' . $e->getMessage();
+                }
+            } else {
+                $failcount++;
+                $errordetails[] = $filename . ': ' . get_string('ingest:error_invalid_file', 'local_astusse');
+            }
+        } else if ($filename !== '' && $filesize > 50 * 1024 * 1024) {
+            $failcount++;
+            $errordetails[] = $filename . ': ' . get_string('ingest:error_file_too_large', 'local_astusse');
+        }
+    }
+
+    // --- Build result message ---
+    if ($okcount === 0 && $failcount === 0) {
+        $error = get_string('ingest:course_resources_none_selected', 'local_astusse');
+    } else if ($failcount === 0) {
+        $success = get_string('ingest:course_resources_success', 'local_astusse', (object)['ok' => $okcount]);
+    } else if ($okcount > 0) {
+        $error = get_string('ingest:course_resources_partial', 'local_astusse',
+            (object)['ok' => $okcount, 'fail' => $failcount]);
+    } else {
+        $error = get_string('ingest:course_resources_all_failed', 'local_astusse');
     }
 }
 
@@ -368,6 +456,9 @@ echo html_writer::start_div('card-body');
 $form->display();
 echo html_writer::end_div();
 echo html_writer::end_div();
-echo html_writer::end_div();
+
+echo html_writer::end_div(); // .local-astusse-ingest-page
+
+$PAGE->requires->js_call_amd('local_astusse/ingest_page', 'init');
 
 echo $OUTPUT->footer();

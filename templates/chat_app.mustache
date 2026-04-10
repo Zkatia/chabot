@@ -1,33 +1,60 @@
 <div class="local-astusse-chatapp" data-page-mode="{{pageMode}}">
-    <aside class="local-astusse-chatapp-sidebar">
-        <div class="local-astusse-chatapp-brand">
-            <span class="local-astusse-chatapp-brand-kicker">ASTUSSE</span>
-            <h2>{{brandTitle}}</h2>
-            <p>{{brandIntro}}</p>
+
+    {{! ── Sidebar ── }}
+    <aside class="local-astusse-chatapp-sidebar" id="local-astusse-chatapp-sidebar">
+        <div class="local-astusse-chatapp-sidebar-header">
+            <a href="{{backUrl}}" class="local-astusse-chatapp-back-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                {{backLabel}}
+            </a>
+            <button type="button" id="local-astusse-chatapp-sidebar-close"
+                    class="local-astusse-chatapp-sidebar-toggle" aria-label="Close sidebar">
+                ✕
+            </button>
         </div>
-        <button type="button" id="local-astusse-chatapp-new" class="btn btn-primary local-astusse-chatapp-new">
+
+        <button type="button" id="local-astusse-chatapp-new" class="local-astusse-chatapp-new-btn">
+            <span class="local-astusse-chatapp-new-icon">+</span>
             {{newSessionButton}}
         </button>
-        <div class="local-astusse-chatapp-sidebar-section">
-            <div class="local-astusse-chatapp-sidebar-heading">{{conversationsLabel}}</div>
+
+        <nav class="local-astusse-chatapp-threads">
+            <div class="local-astusse-chatapp-threads-label">{{conversationsLabel}}</div>
             <div id="local-astusse-chatapp-threadlist" class="local-astusse-chatapp-threadlist"></div>
-        </div>
+        </nav>
+
     </aside>
 
-    <section class="local-astusse-chatapp-main">
-        <header class="local-astusse-chatapp-topbar">
-            <div class="local-astusse-chatapp-topbar-copy">
-                <span class="local-astusse-chatapp-kicker">ASTUSSE</span>
-                <h1>{{heading}}</h1>
-                <p>{{intro}}</p>
+    {{! ── Main area ── }}
+    <main class="local-astusse-chatapp-main">
+
+        {{! Top bar }}
+        <header class="local-astusse-chatapp-header">
+            <button type="button" id="local-astusse-chatapp-sidebar-open"
+                    class="local-astusse-chatapp-sidebar-toggle" aria-label="Open sidebar">
+                ☰
+            </button>
+            <div class="local-astusse-chatapp-header-center">
+                <select id="local-astusse-chatapp-course" class="local-astusse-chatapp-course-select"></select>
+                <p id="local-astusse-chatapp-course-note" class="local-astusse-chatapp-header-note"></p>
             </div>
-            <div class="local-astusse-chatapp-topbar-side">
+            <div class="local-astusse-chatapp-header-right">
+                <label for="local-astusse-chatapp-agent" class="local-astusse-chatapp-agent-label">{{agentLabel}}</label>
+                <select id="local-astusse-chatapp-agent" class="local-astusse-chatapp-agent-select">
+                    <option value="explicatif">{{agentExplicatif}}</option>
+                    <option value="socratique">{{agentSocratique}}</option>
+                </select>
                 <span id="local-astusse-chatapp-status" class="local-astusse-chatapp-status">
                     {{statusReady}}
                 </span>
             </div>
         </header>
 
+        {{! Context cards (hidden by default, shown when relevant) }}
         <section class="local-astusse-chatapp-context" aria-live="polite">
             <div class="local-astusse-chatapp-context-card">
                 <span class="local-astusse-chatapp-context-label">{{courseContextLabel}}</span>
@@ -39,35 +66,27 @@
             </div>
         </section>
 
+        {{! Messages }}
         <div id="local-astusse-chatapp-messages" class="local-astusse-chatapp-messages" aria-live="polite"></div>
 
-        <section class="local-astusse-chatapp-composer">
-            <div class="local-astusse-chatapp-controls">
-                <div class="local-astusse-chatapp-field">
-                    <label for="local-astusse-chatapp-course">{{courseLabel}}</label>
-                    <select id="local-astusse-chatapp-course" class="custom-select"></select>
-                    <p id="local-astusse-chatapp-course-note" class="local-astusse-chatapp-field-note"></p>
-                </div>
-                <div class="local-astusse-chatapp-field">
-                    <label for="local-astusse-chatapp-agent">{{agentLabel}}</label>
-                    <select id="local-astusse-chatapp-agent" class="custom-select">
-                        <option value="explicatif">{{agentExplicatif}}</option>
-                        <option value="socratique">{{agentSocratique}}</option>
-                    </select>
-                </div>
-            </div>
-            <div class="local-astusse-chatapp-field">
-                <label for="local-astusse-chatapp-input">{{messageLabel}}</label>
-                <textarea id="local-astusse-chatapp-input" rows="4" placeholder="{{messagePlaceholder}}"></textarea>
-            </div>
-            <div class="local-astusse-chatapp-actions">
-                <p class="local-astusse-chatapp-hint">{{inputHint}}</p>
-                <button type="button" id="local-astusse-chatapp-send" class="btn btn-primary local-astusse-chatapp-send">
-                    {{sendButton}}
+        {{! Composer }}
+        <div class="local-astusse-chatapp-composer">
+            <div class="local-astusse-chatapp-input-wrap">
+                <textarea id="local-astusse-chatapp-input" rows="1"
+                          placeholder="{{messagePlaceholder}}"></textarea>
+                <button type="button" id="local-astusse-chatapp-send"
+                        class="local-astusse-chatapp-send-btn" aria-label="{{sendButton}}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
                 </button>
             </div>
-        </section>
-    </section>
+            <p class="local-astusse-chatapp-disclaimer">{{inputHint}}</p>
+        </div>
+
+    </main>
 </div>
 
 <script>window.AstusseChatConfig = {{{jsonConfig}}};</script>

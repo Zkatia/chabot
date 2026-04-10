@@ -37,6 +37,37 @@
     const syncingSessions = new Map();
     const deletingThreads = new Set();
 
+    // ── Sidebar toggle ──
+    const sidebar = document.getElementById('local-astusse-chatapp-sidebar');
+    const sidebarOpen = document.getElementById('local-astusse-chatapp-sidebar-open');
+    const sidebarClose = document.getElementById('local-astusse-chatapp-sidebar-close');
+    function updateSidebarToggleVisibility() {
+        if (sidebarOpen) {
+            sidebarOpen.style.display = sidebar && sidebar.classList.contains('is-collapsed') ? 'flex' : 'none';
+        }
+    }
+    if (sidebar && sidebarOpen) {
+        sidebarOpen.addEventListener('click', function () {
+            sidebar.classList.remove('is-collapsed');
+            updateSidebarToggleVisibility();
+        });
+    }
+    if (sidebar && sidebarClose) {
+        sidebarClose.addEventListener('click', function () {
+            sidebar.classList.add('is-collapsed');
+            updateSidebarToggleVisibility();
+        });
+    }
+    updateSidebarToggleVisibility();
+
+    // ── Auto-resize textarea ──
+    if (messageInput) {
+        messageInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+        });
+    }
+
     function createSessionId() {
         return 'astusse-' + Date.now() + '-' + Math.random().toString(16).slice(2, 10);
     }
@@ -395,29 +426,6 @@
             : escapeHtml(message.text).replace(/\n/g, '<br>');
         article.appendChild(bubble);
 
-        const hasMetadata = !!(message.traceId || message.sessionId || message.agentUsed);
-        if (hasMetadata && message.role === 'assistant') {
-            const details = document.createElement('details');
-            details.className = 'local-astusse-chatapp-details';
-            const summary = document.createElement('summary');
-            summary.textContent = config.strings.technicalDetailsLabel;
-            details.appendChild(summary);
-            const lines = [];
-            if (message.traceId) {
-                lines.push(config.strings.traceIdLabel + ': ' + message.traceId);
-            }
-            if (message.sessionId) {
-                lines.push(config.strings.sessionIdLabel + ': ' + message.sessionId);
-            }
-            if (message.agentUsed) {
-                lines.push(config.strings.agentUsedLabel + ': ' + message.agentUsed);
-            }
-            const body = document.createElement('div');
-            body.className = 'local-astusse-chatapp-details-body';
-            body.textContent = lines.join(' | ');
-            details.appendChild(body);
-            article.appendChild(details);
-        }
         return article;
     }
 

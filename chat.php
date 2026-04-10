@@ -79,7 +79,7 @@ if ($courseid > 0) {
 
     $PAGE->set_context(context_system::instance());
     $PAGE->set_url(new moodle_url('/local/astusse/chat.php'));
-    $PAGE->set_pagelayout('mydashboard');
+    $PAGE->set_pagelayout('embedded');
     $PAGE->set_title(get_string('chat:global_title', 'local_astusse'));
     $PAGE->set_heading(get_string('chat:global_heading', 'local_astusse'));
     $PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
