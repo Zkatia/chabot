@@ -51,7 +51,7 @@ class local_astusse_ingest_form extends moodleform {
         if (!empty($courseresources)) {
             // Type filter buttons.
             $filterhtml = '<div class="local-astusse-resource-filters mb-2">';
-            foreach (['all', 'resource', 'page', 'scorm'] as $ftype) {
+            foreach (['all', 'resource', 'page', 'scorm', 'h5pactivity'] as $ftype) {
                 $label = get_string('ingest:course_resources_filter_' . $ftype, 'local_astusse');
                 $active = $ftype === 'all' ? ' active' : '';
                 $filterhtml .= '<button type="button" class="btn btn-sm btn-outline-secondary local-astusse-filter-btn'
@@ -95,11 +95,17 @@ class local_astusse_ingest_form extends moodleform {
         $mform->addElement('html', '</div>');
 
         // === File upload slot (moved below resources by JS) ===
+        $maxuploadmb = (int)($this->_customdata['maxuploadmb'] ?? 50);
         $mform->addElement('html', '<div class="local-astusse-upload-slot">');
+        $mform->addElement('html', '<h4>' . get_string('ingest:upload_heading', 'local_astusse') . '</h4>');
+        $mform->addElement('html', '<p class="text-muted small mb-1">'
+            . get_string('ingest:upload_hint_multi', 'local_astusse') . '</p>');
+        $mform->addElement('html', '<p class="text-muted small">'
+            . get_string('ingest:upload_hint_size', 'local_astusse', (string)$maxuploadmb) . '</p>');
         $mform->addElement(
             'filemanager',
             'resourcefile',
-            get_string('ingest:file_label', 'local_astusse'),
+            '',
             null,
             $filemanageroptions
         );
@@ -141,41 +147,6 @@ class local_astusse_ingest_form extends moodleform {
     }
 }
 
-/**
- * Return a user-friendly error message for gateway HTTP status.
- *
- * @param int $status
- * @return string
- */
-function local_astusse_ingest_http_error_message(int $status): string {
-    switch ($status) {
-        case 400:
-            return get_string('ingest:error_http_400', 'local_astusse');
-        case 401:
-            return get_string('ingest:error_http_401', 'local_astusse');
-        case 403:
-            return get_string('ingest:error_http_403', 'local_astusse');
-        case 404:
-            return get_string('ingest:error_http_404', 'local_astusse');
-        case 408:
-            return get_string('ingest:error_http_408', 'local_astusse');
-        case 413:
-            return get_string('ingest:error_http_413', 'local_astusse');
-        case 429:
-            return get_string('ingest:error_http_429', 'local_astusse');
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-            return get_string('ingest:error_http_5xx', 'local_astusse');
-        default:
-            if ($status > 0) {
-                return get_string('ingest:error_http_unknown', 'local_astusse', (string)$status);
-            }
-            return get_string('ingest:error_submit', 'local_astusse');
-    }
-}
-
 $courseid = required_param('courseid', PARAM_INT);
 $course = get_course($courseid);
 $coursecontext = context_course::instance($course->id);
@@ -190,13 +161,23 @@ $PAGE->set_title(get_string('ingest:title', 'local_astusse'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
 
-$client = new \local_astusse\api_client();
 $referencecontext = local_astusse_get_reference_trainer_context($courseid);
 $referencestatus = $referencecontext['status'];
-$error = '';
-$success = '';
-$errordetails = [];
-$result = null;
+
+$activejobscount = (int)$DB->count_records_select(
+    'local_astusse_ingest_jobs',
+    'userid = :userid AND courseid = :courseid AND status IN (:queued, :running)',
+    [
+        'userid' => (int)$USER->id,
+        'courseid' => $courseid,
+        'queued' => 'queued',
+        'running' => 'running',
+    ]
+);
+$failedjobscount = (int)$DB->count_records(
+    'local_astusse_ingest_jobs',
+    ['userid' => (int)$USER->id, 'courseid' => $courseid, 'status' => 'failed']
+);
 
 $availablecourses = [];
 $courses = enrol_get_users_courses($USER->id, true, 'id,fullname');
@@ -218,10 +199,11 @@ if (!array_key_exists((int)$course->id, $availablecourses)) {
 asort($availablecourses, SORT_NATURAL | SORT_FLAG_CASE);
 
 $usercontext = context_user::instance($USER->id);
+$maxuploadbytes = local_astusse_get_ingest_max_upload_bytes();
 $filemanageroptions = [
     'subdirs' => 0,
-    'maxbytes' => 50 * 1024 * 1024,
-    'maxfiles' => 1,
+    'maxbytes' => $maxuploadbytes,
+    'maxfiles' => 10,
     'accepted_types' => ['.pdf', '.txt', '.doc', '.docx', '.md', '.markdown', '.html', '.htm'],
 ];
 
@@ -249,6 +231,7 @@ $form = new local_astusse_ingest_form(
         'availablecourses' => $availablecourses,
         'filemanageroptions' => $filemanageroptions,
         'courseresources' => $courseresources,
+        'maxuploadmb' => (int)round($maxuploadbytes / (1024 * 1024)),
     ]
 );
 $formdefaults = [
@@ -258,6 +241,8 @@ $formdefaults = [
 $form->set_data((object)$formdefaults);
 
 if ($formdata = $form->get_data()) {
+    require_sesskey();
+
     // Resolve target course IDs.
     $allowedids = array_fill_keys(array_map('intval', array_keys($availablecourses)), true);
     $validatedcourseids = [];
@@ -275,52 +260,42 @@ if ($formdata = $form->get_data()) {
         $validatedcourseids = [(int)$course->id];
     }
 
-    $okcount = 0;
-    $failcount = 0;
+    $queued = 0;
+    $skipped = [];
 
-    // --- 1. Ingest selected course resources ---
+    // --- 1. Queue selected course resources ---
     $selectedcmids = optional_param_array('selectedresources', [], PARAM_INT);
     $selectedcmids = array_values(array_unique(array_filter(array_map('intval', $selectedcmids))));
 
+    $cmindex = [];
+    foreach ($courseresources as $res) {
+        $cmindex[(int)$res['cmid']] = $res;
+    }
+
     foreach ($selectedcmids as $selectedcmid) {
-        $resourcename = '';
-        foreach ($courseresources as $res) {
-            if ((int)$res['cmid'] === $selectedcmid) {
-                $resourcename = $res['name'];
-                break;
-            }
+        $meta = $cmindex[$selectedcmid] ?? null;
+        if ($meta === null) {
+            continue;
         }
 
         try {
-            $extracted = local_astusse_extract_module_content($selectedcmid, $courseid);
-            if ($extracted === null) {
-                $failcount++;
-                $errordetails[] = get_string('ingest:course_resources_extract_failed', 'local_astusse', $resourcename);
-                continue;
-            }
-
-            $ingestresult = $client->ingest_document_for_user(
-                $USER,
-                $validatedcourseids,
-                $extracted['filepath'],
-                $extracted['filename'],
-                $extracted['mimetype']
-            );
-            $ingeststatus = (int)($ingestresult['status'] ?? 0);
-            if ($ingeststatus >= 200 && $ingeststatus < 300) {
-                $okcount++;
-            } else {
-                $failcount++;
-                $backmsg = $client->extract_error_message($ingestresult);
-                $errordetails[] = $resourcename . ': HTTP ' . $ingeststatus . ' — ' . $backmsg;
-            }
+            local_astusse_create_ingest_job([
+                'userid' => (int)$USER->id,
+                'courseid' => $courseid,
+                'targetcourseids' => $validatedcourseids,
+                'sourcetype' => (string)$meta['modname'],
+                'sourcecmid' => $selectedcmid,
+                'filename' => (string)$meta['name'],
+                'mimetype' => $meta['mimetype'] ?? '',
+                'filesize' => 0,
+            ]);
+            $queued++;
         } catch (\Throwable $e) {
-            $failcount++;
-            $errordetails[] = $resourcename . ': ' . $e->getMessage();
+            $skipped[] = $meta['name'] . ': ' . $e->getMessage();
         }
     }
 
-    // --- 2. Ingest uploaded file (if any) ---
+    // --- 2. Queue uploaded files ---
     $fs = get_file_storage();
     $draftfiles = $fs->get_area_files(
         $usercontext->id,
@@ -331,55 +306,52 @@ if ($formdata = $form->get_data()) {
         false
     );
 
-    if (!empty($draftfiles)) {
-        $draftfile = reset($draftfiles);
+    foreach ($draftfiles as $draftfile) {
         $filename = clean_param((string)$draftfile->get_filename(), PARAM_FILE);
         $mimetype = (string)$draftfile->get_mimetype();
         $filesize = (int)$draftfile->get_filesize();
 
-        if ($filename !== '' && $filesize > 0 && $filesize <= 50 * 1024 * 1024) {
-            $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
-            if ($draftfile->copy_content_to($tmppath)) {
-                try {
-                    $result = $client->ingest_document_for_user(
-                        $USER,
-                        $validatedcourseids,
-                        $tmppath,
-                        $filename,
-                        $mimetype
-                    );
-                    $status = (int)($result['status'] ?? 0);
-                    if ($status >= 200 && $status < 300) {
-                        $okcount++;
-                    } else {
-                        $failcount++;
-                        $errordetails[] = $filename . ': ' . local_astusse_ingest_http_error_message($status);
-                    }
-                } catch (\Throwable $e) {
-                    $failcount++;
-                    $errordetails[] = $filename . ': ' . $e->getMessage();
-                }
-            } else {
-                $failcount++;
-                $errordetails[] = $filename . ': ' . get_string('ingest:error_invalid_file', 'local_astusse');
-            }
-        } else if ($filename !== '' && $filesize > 50 * 1024 * 1024) {
-            $failcount++;
-            $errordetails[] = $filename . ': ' . get_string('ingest:error_file_too_large', 'local_astusse');
+        if ($filename === '' || $filesize <= 0) {
+            continue;
+        }
+        if ($filesize > $maxuploadbytes) {
+            $skipped[] = $filename . ': ' . get_string('ingest:error_file_too_large', 'local_astusse');
+            continue;
+        }
+
+        try {
+            $jobid = local_astusse_create_ingest_job([
+                'userid' => (int)$USER->id,
+                'courseid' => $courseid,
+                'targetcourseids' => $validatedcourseids,
+                'sourcetype' => 'upload',
+                'filename' => $filename,
+                'mimetype' => $mimetype ?: 'application/octet-stream',
+                'filesize' => $filesize,
+            ]);
+            local_astusse_store_ingest_upload($draftfile, $jobid, (int)$USER->id);
+            $queued++;
+        } catch (\Throwable $e) {
+            $skipped[] = $filename . ': ' . $e->getMessage();
         }
     }
 
-    // --- Build result message ---
-    if ($okcount === 0 && $failcount === 0) {
-        $error = get_string('ingest:course_resources_none_selected', 'local_astusse');
-    } else if ($failcount === 0) {
-        $success = get_string('ingest:course_resources_success', 'local_astusse', (object)['ok' => $okcount]);
-    } else if ($okcount > 0) {
-        $error = get_string('ingest:course_resources_partial', 'local_astusse',
-            (object)['ok' => $okcount, 'fail' => $failcount]);
+    if ($queued === 0 && empty($skipped)) {
+        \core\notification::warning(get_string('ingest:course_resources_none_selected', 'local_astusse'));
     } else {
-        $error = get_string('ingest:course_resources_all_failed', 'local_astusse');
+        if ($queued > 0) {
+            \core\notification::success(
+                get_string('jobs:queued_notification', 'local_astusse', (object)['count' => $queued])
+            );
+        }
+        if (!empty($skipped)) {
+            \core\notification::warning(
+                get_string('jobs:skipped_notification', 'local_astusse') . ' ' . implode(' | ', $skipped)
+            );
+        }
     }
+
+    redirect(new moodle_url('/local/astusse/jobs.php', ['courseid' => $courseid]));
 }
 
 echo $OUTPUT->header();
@@ -409,46 +381,34 @@ echo html_writer::tag(
     ['class' => 'local-astusse-ingest-status ' . $referencestateclass]
 );
 echo html_writer::tag('p', $referencestatetext, ['class' => 'local-astusse-ingest-global-note']);
-echo html_writer::end_div();
-echo html_writer::end_div();
 
-if ($error !== '') {
-    echo $OUTPUT->notification($error, 'notifyproblem');
-    if (!empty($errordetails)) {
-        echo html_writer::start_div('alert alert-light border');
-        echo html_writer::start_tag('ul', ['class' => 'mb-0']);
-        foreach ($errordetails as $detail) {
-            echo html_writer::tag('li', $detail);
-        }
-        echo html_writer::end_tag('ul');
-        echo html_writer::end_div();
-    }
+$jobsurl = new moodle_url('/local/astusse/jobs.php', ['courseid' => $courseid]);
+$jobscardclass = 'local-astusse-ingest-jobs-card';
+if ($activejobscount > 0) {
+    $jobscardclass .= ' is-active';
+} else if ($failedjobscount > 0) {
+    $jobscardclass .= ' is-failed';
 }
-if ($success !== '') {
-    echo $OUTPUT->notification($success, 'notifysuccess');
-}
+$jobsmainlabel = $activejobscount > 0
+    ? get_string('jobs:hero_active_count', 'local_astusse', (string)$activejobscount)
+    : ($failedjobscount > 0
+        ? get_string('jobs:hero_failed_count', 'local_astusse', (string)$failedjobscount)
+        : get_string('jobs:hero_idle', 'local_astusse'));
+echo html_writer::link(
+    $jobsurl,
+    html_writer::tag('span', $jobsmainlabel, ['class' => 'local-astusse-ingest-jobs-card-label']) .
+        html_writer::tag('span', get_string('jobs:hero_cta', 'local_astusse'),
+            ['class' => 'local-astusse-ingest-jobs-card-cta']),
+    ['class' => $jobscardclass]
+);
+
+echo html_writer::end_div();
+echo html_writer::end_div();
 
 if (empty($availablecourses)) {
     echo $OUTPUT->notification(get_string('ingest:error_no_available_courses', 'local_astusse'), 'notifyproblem');
     echo $OUTPUT->footer();
     exit;
-}
-
-if ($result !== null) {
-    $httpstatus = (int)($result['status'] ?? 0);
-    $json = $result['body_json'] ?? null;
-    echo html_writer::start_div('alert alert-light border');
-    echo html_writer::tag('p', get_string('ingest:result_http_status', 'local_astusse', (string)$httpstatus));
-    if (is_array($json)) {
-        echo html_writer::tag('p', get_string('ingest:result_status', 'local_astusse', (string)($json['status'] ?? '')));
-        if (!empty($json['jobId'])) {
-            echo html_writer::tag('p', get_string('ingest:result_jobid', 'local_astusse', s((string)$json['jobId'])));
-        }
-        if (!empty($json['traceId'])) {
-            echo html_writer::tag('p', get_string('ingest:result_traceid', 'local_astusse', s((string)$json['traceId'])));
-        }
-    }
-    echo html_writer::end_div();
 }
 
 echo html_writer::start_div('card local-astusse-ingest-card');

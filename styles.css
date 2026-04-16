@@ -97,6 +97,102 @@
     line-height: 1.4;
 }
 
+/* Ingestion jobs link rendered as a compact card inside the hero right column. */
+#page-local-astusse-ingest .local-astusse-ingest-jobs-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    max-width: 20rem;
+}
+
+#page-local-astusse-ingest .local-astusse-ingest-jobs-card:hover {
+    background: #e0e7ff;
+    border-color: #c7d2fe;
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+#page-local-astusse-ingest .local-astusse-ingest-jobs-card.is-active {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
+}
+
+#page-local-astusse-ingest .local-astusse-ingest-jobs-card.is-failed {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+#page-local-astusse-ingest .local-astusse-ingest-jobs-card-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+#page-local-astusse-ingest .local-astusse-ingest-jobs-card-cta {
+    font-size: 0.72rem;
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+/* === Jobs page filters === */
+
+.local-astusse-jobs-filters {
+    border: 1px solid #e2e8f0;
+    background: #fafbfc;
+}
+
+.local-astusse-jobs-filters .card-body {
+    padding: 1rem 1.25rem;
+}
+
+.local-astusse-jobs-filters-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.local-astusse-jobs-filters .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.local-astusse-jobs-filters label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.local-astusse-jobs-filters .form-control {
+    font-size: 0.88rem;
+}
+
+.local-astusse-jobs-filters-actions {
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.local-astusse-jobs-col-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
 #page-local-astusse-ingest .local-astusse-ingest-card .card-body {
     padding: 1.25rem;
 }
@@ -244,11 +340,27 @@
     margin-bottom: 0.5rem;
 }
 
-.local-astusse-upload-slot h4,
-.local-astusse-upload-slot .col-form-label {
+.local-astusse-upload-slot h4 {
     font-size: 1.1rem;
     font-weight: 600;
     color: #1e40af;
+    margin-bottom: 0.25rem;
+}
+
+/* Stack filemanager widget full-width under the heading/intro by collapsing
+   the default Moodle label column (label passed empty from PHP). */
+.local-astusse-upload-slot .form-group {
+    display: block;
+}
+.local-astusse-upload-slot .form-group > .col-form-label,
+.local-astusse-upload-slot .form-group > .col-md-3 {
+    display: none;
+}
+.local-astusse-upload-slot .form-group > .col-md-9,
+.local-astusse-upload-slot .form-group > .felement {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding-left: 0;
 }
 
 /* Hide default moodleform submit row styling noise */

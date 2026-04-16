@@ -58,5 +58,42 @@ function xmldb_local_astusse_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026032403, 'local', 'astusse');
     }
 
+    if ($oldversion < 2026041601) {
+        $table = new xmldb_table('local_astusse_ingest_jobs');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('targetcourseids', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sourcetype', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sourcecmid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('fileareaitemid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('filename', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('mimetype', XMLDB_TYPE_CHAR, '128', null, XMLDB_NOTNULL, null, 'application/octet-stream');
+        $table->add_field('filesize', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('status', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, 'queued');
+        $table->add_field('attempts', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('httpstatus', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('backendjobid', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+        $table->add_field('backendtraceid', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+        $table->add_field('errormessage', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timestarted', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('timecompleted', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+        $table->add_index('status_idx', XMLDB_INDEX_NOTUNIQUE, ['status']);
+        $table->add_index('courseid_idx', XMLDB_INDEX_NOTUNIQUE, ['courseid']);
+        $table->add_index('timecreated_idx', XMLDB_INDEX_NOTUNIQUE, ['timecreated']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026041601, 'local', 'astusse');
+    }
+
     return true;
 }
