@@ -193,6 +193,68 @@
     white-space: nowrap;
 }
 
+/* === Chat empty state (user enrolled in no course) === */
+
+.local-astusse-chat-empty {
+    display: flex;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+}
+
+.local-astusse-chat-empty-card {
+    max-width: 560px;
+    width: 100%;
+    padding: 2rem 2.25rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #0f6cbf;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(15, 108, 191, 0.06);
+}
+
+.local-astusse-chat-empty-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: #0f6cbf;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+}
+
+.local-astusse-chat-empty-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.45rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.local-astusse-chat-empty-intro {
+    margin: 0 0 1rem;
+    color: #475569;
+    font-size: 1rem;
+}
+
+.local-astusse-chat-empty-explain {
+    margin: 0 0 1.5rem;
+    padding: 0.85rem 1rem;
+    background: #f1f5f9;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.local-astusse-chat-empty-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
 #page-local-astusse-ingest .local-astusse-ingest-card .card-body {
     padding: 1.25rem;
 }

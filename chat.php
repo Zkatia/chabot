@@ -64,7 +64,41 @@ if ($courseid > 0) {
 
     $accessiblecourses = local_astusse_get_chat_accessible_courses($USER);
     if (!$accessiblecourses) {
-        throw new moodle_exception('chat:global_no_courses', 'local_astusse');
+        $PAGE->set_context(context_system::instance());
+        $PAGE->set_url(new moodle_url('/local/astusse/chat.php'));
+        $PAGE->set_pagelayout('standard');
+        $PAGE->set_title(get_string('chat:global_title', 'local_astusse'));
+        $PAGE->set_heading(get_string('chat:global_heading', 'local_astusse'));
+        $PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
+
+        echo $OUTPUT->header();
+        echo html_writer::start_div('local-astusse-chat-empty');
+        echo html_writer::start_div('local-astusse-chat-empty-card');
+        echo html_writer::tag('span', 'ASTUSSE', ['class' => 'local-astusse-chat-empty-kicker']);
+        echo html_writer::tag('h2', get_string('chat:empty_heading', 'local_astusse'),
+            ['class' => 'local-astusse-chat-empty-title']);
+        echo html_writer::tag('p', get_string('chat:empty_intro', 'local_astusse'),
+            ['class' => 'local-astusse-chat-empty-intro']);
+        echo html_writer::tag('p', get_string('chat:empty_explain', 'local_astusse'),
+            ['class' => 'local-astusse-chat-empty-explain']);
+
+        echo html_writer::start_div('local-astusse-chat-empty-actions');
+        echo html_writer::link(
+            new moodle_url('/my/'),
+            get_string('chat:empty_cta_dashboard', 'local_astusse'),
+            ['class' => 'btn btn-primary']
+        );
+        echo html_writer::link(
+            new moodle_url('/course/'),
+            get_string('chat:empty_cta_browse', 'local_astusse'),
+            ['class' => 'btn btn-outline-secondary']
+        );
+        echo html_writer::end_div();
+
+        echo html_writer::end_div(); // card
+        echo html_writer::end_div(); // empty
+        echo $OUTPUT->footer();
+        exit;
     }
 
     $coursemetas = [];
