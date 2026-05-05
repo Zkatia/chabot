@@ -179,13 +179,13 @@ class ingest_document_task extends \core\task\adhoc_task {
             ];
         }
 
-        if (in_array($job->sourcetype, ['resource', 'page', 'scorm', 'h5pactivity'], true)) {
+        if (in_array($job->sourcetype, ['resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'], true)) {
             $cmid = (int)$job->sourcecmid;
             if ($cmid <= 0) {
                 throw new \Exception('Module job ' . $job->id . ' is missing sourcecmid');
             }
 
-            $extracted = \local_astusse_extract_module_content($cmid, (int)$job->courseid);
+            $extracted = \local_astusse_extract_module_content($cmid, (int)$job->courseid, $job);
             if ($extracted === null) {
                 throw new \Exception('Failed to extract content from cmid ' . $cmid
                     . ' for job ' . $job->id);

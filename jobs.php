@@ -43,7 +43,7 @@ $filterstatus = optional_param('filterstatus', '', PARAM_ALPHANUMEXT);
 $page = optional_param('page', 0, PARAM_INT);
 $perpage = 25;
 
-$sourcetypechoices = ['upload', 'resource', 'page', 'scorm', 'h5pactivity'];
+$sourcetypechoices = ['upload', 'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'];
 $statuschoices = ['queued', 'running', 'succeeded', 'failed'];
 if (!in_array($filtersourcetype, $sourcetypechoices, true)) {
     $filtersourcetype = '';

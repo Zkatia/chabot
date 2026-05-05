@@ -73,7 +73,7 @@ if ($hassiteconfig) {
         'local_astusse/gateway_timeout_seconds',
         get_string('gateway_timeout_seconds', 'local_astusse'),
         get_string('gateway_timeout_seconds_desc', 'local_astusse'),
-        30,
+        120,
         PARAM_INT
     ));
 

@@ -586,7 +586,7 @@ function local_astusse_scope_policy_settings_state_html(): string {
  */
 function local_astusse_get_course_ingestable_resources(int $courseid): array {
     $modinfo = get_fast_modinfo($courseid);
-    $supportedtypes = ['resource', 'page', 'scorm', 'h5pactivity'];
+    $supportedtypes = ['resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'];
     $resources = [];
 
     foreach ($modinfo->get_cms() as $cminfo) {
@@ -655,9 +655,10 @@ function local_astusse_get_course_ingestable_resources(int $courseid): array {
  *
  * @param int $cmid Course module ID.
  * @param int $courseid Course ID (for validation).
+ * @param \stdClass|null $job Optional job row carrying extra context (e.g. fileareaitemid for folder).
  * @return array|null
  */
-function local_astusse_extract_module_content(int $cmid, int $courseid): ?array {
+function local_astusse_extract_module_content(int $cmid, int $courseid, ?\stdClass $job = null): ?array {
     global $DB;
 
     $cm = get_coursemodule_from_id('', $cmid, $courseid, false, MUST_EXIST);
@@ -674,8 +675,189 @@ function local_astusse_extract_module_content(int $cmid, int $courseid): ?array 
     if ($cm->modname === 'h5pactivity') {
         return local_astusse_extract_h5p_content($cm);
     }
+    if ($cm->modname === 'url') {
+        return local_astusse_extract_url_content($cm);
+    }
+    if ($cm->modname === 'book') {
+        return local_astusse_extract_book_content($cm);
+    }
+    if ($cm->modname === 'glossary') {
+        return local_astusse_extract_glossary_content($cm);
+    }
+    if ($cm->modname === 'lesson') {
+        return local_astusse_extract_lesson_content($cm);
+    }
+    if ($cm->modname === 'quiz') {
+        return local_astusse_extract_quiz_content($cm);
+    }
+    if ($cm->modname === 'assign') {
+        return local_astusse_extract_assign_content($cm);
+    }
+    if ($cm->modname === 'wiki') {
+        return local_astusse_extract_wiki_content($cm);
+    }
+    if ($cm->modname === 'folder') {
+        return local_astusse_extract_folder_content($cm, $job);
+    }
 
     return null;
+}
+
+/**
+ * Check whether a hostname resolves to a public, routable IP address.
+ *
+ * Blocks loopback, link-local, RFC1918 private, multicast and reserved ranges
+ * to prevent SSRF against the Moodle host's internal network.
+ *
+ * @param string $host
+ * @return bool
+ */
+function local_astusse_is_public_host(string $host): bool {
+    $ips = @gethostbynamel($host);
+    if (!is_array($ips) || empty($ips)) {
+        // Try IPv6.
+        $records = @dns_get_record($host, DNS_AAAA);
+        if (!empty($records)) {
+            $ips = array_column($records, 'ipv6');
+        }
+    }
+    if (empty($ips)) {
+        return false;
+    }
+    foreach ($ips as $ip) {
+        // FILTER_FLAG_NO_PRIV_RANGE excludes RFC1918 (10/8, 172.16/12, 192.168/16).
+        // FILTER_FLAG_NO_RES_RANGE excludes loopback, link-local, etc.
+        if (filter_var($ip, FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Fetch the visible text of an external HTTPS URL with safety guardrails.
+ *
+ * Returns null on any failure (timeout, non-2xx, oversized, SSRF block, etc.).
+ *
+ * @param string $url
+ * @return string|null
+ */
+function local_astusse_fetch_external_url_text(string $url): ?string {
+    $parts = parse_url($url);
+    if (!is_array($parts) || empty($parts['host'])) {
+        return null;
+    }
+    if (($parts['scheme'] ?? '') !== 'https') {
+        // Only HTTPS allowed.
+        return null;
+    }
+    if (!local_astusse_is_public_host($parts['host'])) {
+        return null;
+    }
+
+    $maxbytes = 5 * 1024 * 1024;
+    $body = '';
+    $oversized = false;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 25);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'local_astusse/1.0 (+https://moodle.org)');
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+    curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Accept: text/html,application/xhtml+xml',
+        'Accept-Language: fr,en;q=0.8',
+    ]);
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $chunk) use (&$body, &$oversized, $maxbytes) {
+        $len = strlen($chunk);
+        if (strlen($body) + $len > $maxbytes) {
+            $oversized = true;
+            return 0; // abort transfer
+        }
+        $body .= $chunk;
+        return $len;
+    });
+
+    $ok = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $contenttype = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+
+    if ($oversized) {
+        // We aborted on purpose mid-stream; what we got may still be useful.
+    } else if ($ok === false || $status < 200 || $status >= 300) {
+        return null;
+    }
+    if ($body === '') {
+        return null;
+    }
+    if (stripos($contenttype, 'html') === false && stripos($contenttype, 'xml') === false) {
+        // Not an HTML/XHTML payload — skip (no PDF/text fetcher for now).
+        return null;
+    }
+
+    $text = local_astusse_extract_text_from_html($body);
+    return $text !== '' ? $text : null;
+}
+
+/**
+ * Extract text from an `mod_url` activity: metadata + (when possible) fetched
+ * content of the external URL, parsed as HTML.
+ *
+ * Always returns at least the metadata so the RAG knows the resource exists,
+ * even when the remote site is unreachable.
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_url_content(stdClass $cm): ?array {
+    global $DB;
+
+    $record = $DB->get_record('url', ['id' => $cm->instance], 'id, name, intro, introformat, externalurl');
+    if (!$record) {
+        return null;
+    }
+    $external = trim((string)$record->externalurl);
+    if ($external === '') {
+        return null;
+    }
+
+    $parts = [];
+    $parts[] = 'Titre : ' . $cm->name;
+    if (!empty($record->intro)) {
+        $intro = format_text($record->intro, $record->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        $intro = trim(preg_replace('/\s+/', ' ', strip_tags($intro)));
+        $intro = html_entity_decode($intro, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($intro !== '') {
+            $parts[] = 'Description : ' . $intro;
+        }
+    }
+    $parts[] = 'URL : ' . $external;
+
+    $remotetext = local_astusse_fetch_external_url_text($external);
+    if ($remotetext !== null && mb_strlen($remotetext) > 20) {
+        $parts[] = "\n---\n";
+        $parts[] = 'Contenu de la page :';
+        $parts[] = $remotetext;
+    }
+
+    $merged = implode("\n", $parts);
+    $filename = clean_filename($cm->name) . '_url.txt';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $merged);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/plain',
+    ];
 }
 
 /**
@@ -901,6 +1083,560 @@ function local_astusse_extract_page_content(stdClass $cm): ?array {
         'filepath' => $tmppath,
         'filename' => $filename,
         'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * Extract content from a book module by concatenating all visible chapters.
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_book_content(stdClass $cm): ?array {
+    global $DB;
+
+    $book = $DB->get_record('book', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
+    $chapters = $DB->get_records('book_chapters',
+        ['bookid' => $book->id, 'hidden' => 0],
+        'pagenum ASC',
+        'id, title, content, contentformat, subchapter');
+
+    if (empty($chapters)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('book:empty_no_chapters', 'local_astusse'));
+    }
+
+    $bodyparts = [];
+    if (!empty($book->intro)) {
+        $intro = format_text($book->intro, $book->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($intro)) !== '') {
+            $bodyparts[] = '<div class="book-intro">' . $intro . '</div>';
+        }
+    }
+
+    foreach ($chapters as $chapter) {
+        $tag = !empty($chapter->subchapter) ? 'h3' : 'h2';
+        $bodyparts[] = '<' . $tag . '>' . s($chapter->title) . '</' . $tag . '>';
+        $bodyparts[] = format_text($chapter->content, $chapter->contentformat ?? FORMAT_HTML, ['noclean' => true]);
+    }
+
+    $body = implode("\n", $bodyparts);
+    if (trim(strip_tags($body)) === '') {
+        return null;
+    }
+
+    $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
+        . '</title></head><body><h1>' . s($cm->name) . '</h1>' . $body . '</body></html>';
+
+    $filename = clean_filename($cm->name) . '_book.html';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $html);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * Extract content from a glossary module by concatenating all approved entries.
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_glossary_content(stdClass $cm): ?array {
+    global $DB;
+
+    $glossary = $DB->get_record('glossary', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
+    $entries = $DB->get_records('glossary_entries',
+        ['glossaryid' => $glossary->id, 'approved' => 1],
+        'concept ASC',
+        'id, concept, definition, definitionformat');
+
+    if (empty($entries)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('glossary:empty_no_entries', 'local_astusse'));
+    }
+
+    $bodyparts = [];
+    if (!empty($glossary->intro)) {
+        $intro = format_text($glossary->intro, $glossary->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($intro)) !== '') {
+            $bodyparts[] = '<div class="glossary-intro">' . $intro . '</div>';
+        }
+    }
+
+    $bodyparts[] = '<dl>';
+    foreach ($entries as $entry) {
+        $definition = format_text($entry->definition, $entry->definitionformat ?? FORMAT_HTML, ['noclean' => true]);
+        $bodyparts[] = '<dt>' . s($entry->concept) . '</dt>';
+        $bodyparts[] = '<dd>' . $definition . '</dd>';
+    }
+    $bodyparts[] = '</dl>';
+
+    $body = implode("\n", $bodyparts);
+    if (trim(strip_tags($body)) === '') {
+        return null;
+    }
+
+    $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
+        . '</title></head><body><h1>' . s($cm->name) . '</h1>' . $body . '</body></html>';
+
+    $filename = clean_filename($cm->name) . '_glossary.html';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $html);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * Extract content from a lesson module: page contents + correct answers (score > 0).
+ *
+ * Pages are emitted in the lesson's logical order by walking the prev/next linked list
+ * from the entry page (prevpageid = 0). Skips structural qtypes (cluster boundaries,
+ * end-of-branch markers).
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_lesson_content(stdClass $cm): ?array {
+    global $DB;
+
+    $lesson = $DB->get_record('lesson', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
+    $allpages = $DB->get_records('lesson_pages',
+        ['lessonid' => $lesson->id],
+        'id ASC',
+        'id, qtype, title, contents, contentsformat, prevpageid, nextpageid');
+
+    if (empty($allpages)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('lesson:empty_no_pages', 'local_astusse'));
+    }
+
+    $bypage = [];
+    foreach ($allpages as $p) {
+        $bypage[$p->id] = $p;
+    }
+    $ordered = [];
+    $visited = [];
+    foreach ($allpages as $p) {
+        if ((int)$p->prevpageid === 0) {
+            $current = $p;
+            while ($current && !isset($visited[$current->id])) {
+                $visited[$current->id] = true;
+                $ordered[] = $current;
+                $next = (int)$current->nextpageid;
+                $current = $next > 0 && isset($bypage[$next]) ? $bypage[$next] : null;
+            }
+            break;
+        }
+    }
+    // Append unvisited pages (alternative branches, clusters) at the end.
+    foreach ($allpages as $p) {
+        if (!isset($visited[$p->id])) {
+            $ordered[] = $p;
+        }
+    }
+
+    // ENDOFBRANCH=21, CLUSTER=30, ENDOFCLUSTER=31 are structural — no pedagogical content.
+    $skipqtypes = [21, 30, 31];
+
+    $bodyparts = [];
+    if (!empty($lesson->intro)) {
+        $intro = format_text($lesson->intro, $lesson->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($intro)) !== '') {
+            $bodyparts[] = '<div class="lesson-intro">' . $intro . '</div>';
+        }
+    }
+
+    $correctlabel = get_string('lesson:correctanswerlabel', 'local_astusse');
+    foreach ($ordered as $page) {
+        if (in_array((int)$page->qtype, $skipqtypes, true)) {
+            continue;
+        }
+        $bodyparts[] = '<h2>' . s($page->title) . '</h2>';
+        if (!empty($page->contents)) {
+            $bodyparts[] = format_text($page->contents, $page->contentsformat ?? FORMAT_HTML, ['noclean' => true]);
+        }
+        $answers = $DB->get_records('lesson_answers',
+            ['lessonid' => $lesson->id, 'pageid' => $page->id],
+            'id ASC',
+            'id, answer, answerformat, score');
+        $correct = [];
+        foreach ($answers as $ans) {
+            if ((int)$ans->score <= 0 || empty($ans->answer)) {
+                continue;
+            }
+            $text = trim(preg_replace('/\s+/', ' ',
+                strip_tags(format_text($ans->answer, $ans->answerformat ?? FORMAT_HTML, ['noclean' => true]))));
+            if ($text !== '') {
+                $correct[] = $text;
+            }
+        }
+        if (!empty($correct)) {
+            $bodyparts[] = '<p><strong>' . $correctlabel . '</strong> '
+                . s(implode(' / ', $correct)) . '</p>';
+        }
+    }
+
+    $body = implode("\n", $bodyparts);
+    if (trim(strip_tags($body)) === '') {
+        return null;
+    }
+
+    $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
+        . '</title></head><body><h1>' . s($cm->name) . '</h1>' . $body . '</body></html>';
+
+    $filename = clean_filename($cm->name) . '_lesson.html';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $html);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * Extract content from a quiz module: question texts paired with their correct answers.
+ *
+ * Skips `random` qtypes (runtime placeholders) and `description` (no Q/A). For `match`,
+ * pairs from qtype_match_subquestions are appended. The general feedback is included
+ * when present (useful as model answer for essay-type questions).
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_quiz_content(stdClass $cm): ?array {
+    global $DB;
+
+    $quiz = $DB->get_record('quiz', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
+
+    // Resolve current questions through the Moodle 4.x question bank chain:
+    // quiz_slots → question_references → question_versions (latest 'ready') → question.
+    $sql = "SELECT qs.slot, qv.version, q.id AS questionid, q.qtype, q.name AS qname,
+                   q.questiontext, q.questiontextformat,
+                   q.generalfeedback, q.generalfeedbackformat
+              FROM {quiz_slots} qs
+              JOIN {question_references} qr
+                ON qr.component = 'mod_quiz'
+               AND qr.questionarea = 'slot'
+               AND qr.itemid = qs.id
+              JOIN {question_versions} qv
+                ON qv.questionbankentryid = qr.questionbankentryid
+               AND qv.status = 'ready'
+               AND (qr.version IS NULL OR qv.version = qr.version)
+              JOIN {question} q ON q.id = qv.questionid
+             WHERE qs.quizid = :quizid
+          ORDER BY qs.slot ASC, qv.version DESC";
+    $rows = $DB->get_records_sql($sql, ['quizid' => $quiz->id]);
+    if (empty($rows)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('quiz:empty_no_questions', 'local_astusse'));
+    }
+
+    // Deduplicate by slot (when version IS NULL we may get several rows per slot;
+    // keep the highest version since rows are ordered by qv.version DESC).
+    $byslot = [];
+    foreach ($rows as $row) {
+        $slotkey = (int)$row->slot;
+        if (!isset($byslot[$slotkey])) {
+            $byslot[$slotkey] = $row;
+        }
+    }
+    ksort($byslot);
+
+    $bodyparts = [];
+    if (!empty($quiz->intro)) {
+        $intro = format_text($quiz->intro, $quiz->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($intro)) !== '') {
+            $bodyparts[] = '<div class="quiz-intro">' . $intro . '</div>';
+        }
+    }
+
+    $correctlabel = get_string('quiz:correctanswerlabel', 'local_astusse');
+    $usablequestions = 0;
+    foreach ($byslot as $slot => $row) {
+        if ($row->qtype === 'random' || $row->qtype === 'description') {
+            continue;
+        }
+        $usablequestions++;
+
+        $bodyparts[] = '<h2>' . get_string('quiz:questionnumber', 'local_astusse', $slot) . '</h2>';
+        $qtext = format_text($row->questiontext, $row->questiontextformat ?? FORMAT_HTML, ['noclean' => true]);
+        $bodyparts[] = $qtext;
+
+        $correct = [];
+
+        $answers = $DB->get_records('question_answers',
+            ['question' => $row->questionid],
+            'id ASC',
+            'id, answer, answerformat, fraction');
+        foreach ($answers as $ans) {
+            if ((float)$ans->fraction <= 0) {
+                continue;
+            }
+            $text = trim(preg_replace('/\s+/', ' ',
+                strip_tags(format_text($ans->answer ?? '', $ans->answerformat ?? FORMAT_HTML, ['noclean' => true]))));
+            if ($text !== '') {
+                $correct[] = $text;
+            }
+        }
+
+        // Match-type questions store pairs in qtype_match_subquestions.
+        if ($row->qtype === 'match') {
+            $matches = $DB->get_records('qtype_match_subquestions',
+                ['questionid' => $row->questionid],
+                'id ASC',
+                'id, questiontext, questiontextformat, answertext');
+            foreach ($matches as $m) {
+                $qpart = trim(preg_replace('/\s+/', ' ',
+                    strip_tags(format_text($m->questiontext ?? '', $m->questiontextformat ?? FORMAT_HTML, ['noclean' => true]))));
+                $apart = trim((string)$m->answertext);
+                if ($qpart !== '' && $apart !== '') {
+                    $correct[] = $qpart . ' → ' . $apart;
+                }
+            }
+        }
+
+        if (!empty($correct)) {
+            $bodyparts[] = '<p><strong>' . $correctlabel . '</strong> '
+                . s(implode(' / ', $correct)) . '</p>';
+        }
+
+        if (!empty($row->generalfeedback)) {
+            $gf = format_text($row->generalfeedback, $row->generalfeedbackformat ?? FORMAT_HTML, ['noclean' => true]);
+            if (trim(strip_tags($gf)) !== '') {
+                $bodyparts[] = '<p><em>' . $gf . '</em></p>';
+            }
+        }
+    }
+
+    if ($usablequestions === 0) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('quiz:empty_no_usable_questions', 'local_astusse'));
+    }
+
+    $body = implode("\n", $bodyparts);
+    if (trim(strip_tags($body)) === '') {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('quiz:empty_no_usable_questions', 'local_astusse'));
+    }
+
+    $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
+        . '</title></head><body><h1>' . s($cm->name) . '</h1>' . $body . '</body></html>';
+
+    $filename = clean_filename($cm->name) . '_quiz.html';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $html);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * Extract content from an assignment module: intro + activity instructions.
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_assign_content(stdClass $cm): ?array {
+    global $DB;
+
+    $assign = $DB->get_record('assign', ['id' => $cm->instance],
+        'id, name, intro, introformat, activity, activityformat', MUST_EXIST);
+
+    $bodyparts = [];
+    if (!empty($assign->intro)) {
+        $intro = format_text($assign->intro, $assign->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($intro)) !== '') {
+            $bodyparts[] = '<div class="assign-intro">' . $intro . '</div>';
+        }
+    }
+    if (!empty($assign->activity)) {
+        $activity = format_text($assign->activity, $assign->activityformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($activity)) !== '') {
+            $bodyparts[] = '<div class="assign-activity">' . $activity . '</div>';
+        }
+    }
+
+    if (empty($bodyparts)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('assign:empty_no_instructions', 'local_astusse'));
+    }
+
+    $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
+        . '</title></head><body><h1>' . s($cm->name) . '</h1>'
+        . implode("\n", $bodyparts) . '</body></html>';
+
+    $filename = clean_filename($cm->name) . '_assign.html';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $html);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * Extract content from a wiki module by concatenating all pages across all subwikis.
+ *
+ * Uses `cachedcontent` (Moodle's pre-rendered HTML) to avoid re-parsing creole/nwiki.
+ *
+ * @param stdClass $cm
+ * @return array|null
+ */
+function local_astusse_extract_wiki_content(stdClass $cm): ?array {
+    global $DB;
+
+    $wiki = $DB->get_record('wiki', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
+
+    $sql = "SELECT wp.id, wp.title, wp.cachedcontent, wp.timecreated
+              FROM {wiki_pages} wp
+              JOIN {wiki_subwikis} wsw ON wsw.id = wp.subwikiid
+             WHERE wsw.wikiid = :wikiid
+          ORDER BY wp.timecreated ASC, wp.id ASC";
+    $pages = $DB->get_records_sql($sql, ['wikiid' => $wiki->id]);
+
+    if (empty($pages)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('wiki:empty_no_pages', 'local_astusse'));
+    }
+
+    $bodyparts = [];
+    if (!empty($wiki->intro)) {
+        $intro = format_text($wiki->intro, $wiki->introformat ?? FORMAT_HTML, ['noclean' => true]);
+        if (trim(strip_tags($intro)) !== '') {
+            $bodyparts[] = '<div class="wiki-intro">' . $intro . '</div>';
+        }
+    }
+
+    foreach ($pages as $page) {
+        $cached = (string)($page->cachedcontent ?? '');
+        if (trim(strip_tags($cached)) === '') {
+            continue;
+        }
+        $bodyparts[] = '<h2>' . s($page->title) . '</h2>';
+        $bodyparts[] = $cached;
+    }
+
+    $body = implode("\n", $bodyparts);
+    if (trim(strip_tags($body)) === '') {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('wiki:empty_no_pages', 'local_astusse'));
+    }
+
+    $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
+        . '</title></head><body><h1>' . s($cm->name) . '</h1>' . $body . '</body></html>';
+
+    $filename = clean_filename($cm->name) . '_wiki.html';
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . $filename;
+    file_put_contents($tmppath, $html);
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => 'text/html',
+    ];
+}
+
+/**
+ * List the visible files contained in a folder activity, ready to be expanded into
+ * one ingestion job per file.
+ *
+ * @param int $cmid Course-module id of the folder activity.
+ * @return array[] Each entry: ['fileid' => int, 'filename' => string, 'mimetype' => string, 'filesize' => int]
+ */
+function local_astusse_list_folder_files(int $cmid): array {
+    $context = context_module::instance($cmid);
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_folder', 'content', 0, 'filepath, filename', false);
+    $entries = [];
+    foreach ($files as $file) {
+        if ($file->is_directory()) {
+            continue;
+        }
+        $entries[] = [
+            'fileid' => (int)$file->get_id(),
+            'filename' => $file->get_filename(),
+            'mimetype' => (string)$file->get_mimetype(),
+            'filesize' => (int)$file->get_filesize(),
+        ];
+    }
+    return $entries;
+}
+
+/**
+ * Extract a single file from a folder activity, identified by the stored_file id
+ * carried in the job's `fileareaitemid` column.
+ *
+ * Folder activities expand into N jobs at queue time (one per file), so each job
+ * resolves to exactly one binary that is forwarded as-is to the backend.
+ *
+ * @param stdClass $cm
+ * @param stdClass|null $job The job row, must carry `fileareaitemid` = stored_file id.
+ * @return array|null
+ */
+function local_astusse_extract_folder_content(stdClass $cm, ?\stdClass $job = null): ?array {
+    if ($job === null || empty($job->fileareaitemid)) {
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('folder:missing_fileid', 'local_astusse'));
+    }
+
+    $fileid = (int)$job->fileareaitemid;
+    $context = context_module::instance($cm->id);
+    $fs = get_file_storage();
+
+    // Iterate the folder's content area (same call site as list_folder_files) and
+    // match by stored_file id. Falls back to matching by filename to recover from
+    // a folder that was repackaged between queue and run.
+    $files = $fs->get_area_files($context->id, 'mod_folder', 'content', 0, 'filepath, filename', false);
+    $expectedname = (string)($job->filename ?? '');
+    $file = null;
+    $namematch = null;
+    foreach ($files as $candidate) {
+        if ($candidate->is_directory()) {
+            continue;
+        }
+        if ((int)$candidate->get_id() === $fileid) {
+            $file = $candidate;
+            break;
+        }
+        if ($expectedname !== '' && $candidate->get_filename() === $expectedname && $namematch === null) {
+            $namematch = $candidate;
+        }
+    }
+    if ($file === null && $namematch !== null) {
+        $file = $namematch;
+    }
+
+    if ($file === null) {
+        $detail = $expectedname !== '' ? $expectedname : ('id=' . $fileid);
+        throw new \local_astusse\exception\permanent_extraction_exception(
+            get_string('folder:file_missing', 'local_astusse', $detail));
+    }
+
+    $filename = $file->get_filename();
+    $tmppath = make_request_directory() . DIRECTORY_SEPARATOR . clean_filename($filename);
+    if (!$file->copy_content_to($tmppath)) {
+        throw new \Exception('Unable to copy folder file to temp path');
+    }
+
+    return [
+        'filepath' => $tmppath,
+        'filename' => $filename,
+        'mimetype' => $file->get_mimetype(),
     ];
 }
 
@@ -1761,6 +2497,14 @@ function local_astusse_describe_ingest_job(\stdClass $job): array {
         'page' => get_string('ingest:course_resources_type_page', 'local_astusse'),
         'scorm' => get_string('ingest:course_resources_type_scorm', 'local_astusse'),
         'h5pactivity' => get_string('ingest:course_resources_type_h5pactivity', 'local_astusse'),
+        'url' => get_string('ingest:course_resources_type_url', 'local_astusse'),
+        'book' => get_string('ingest:course_resources_type_book', 'local_astusse'),
+        'glossary' => get_string('ingest:course_resources_type_glossary', 'local_astusse'),
+        'lesson' => get_string('ingest:course_resources_type_lesson', 'local_astusse'),
+        'quiz' => get_string('ingest:course_resources_type_quiz', 'local_astusse'),
+        'assign' => get_string('ingest:course_resources_type_assign', 'local_astusse'),
+        'wiki' => get_string('ingest:course_resources_type_wiki', 'local_astusse'),
+        'folder' => get_string('ingest:course_resources_type_folder', 'local_astusse'),
     ];
 
     $status = (string)$job->status;

@@ -51,7 +51,7 @@ class local_astusse_ingest_form extends moodleform {
         if (!empty($courseresources)) {
             // Type filter buttons.
             $filterhtml = '<div class="local-astusse-resource-filters mb-2">';
-            foreach (['all', 'resource', 'page', 'scorm', 'h5pactivity'] as $ftype) {
+            foreach (['all', 'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'] as $ftype) {
                 $label = get_string('ingest:course_resources_filter_' . $ftype, 'local_astusse');
                 $active = $ftype === 'all' ? ' active' : '';
                 $filterhtml .= '<button type="button" class="btn btn-sm btn-outline-secondary local-astusse-filter-btn'
@@ -275,6 +275,35 @@ if ($formdata = $form->get_data()) {
     foreach ($selectedcmids as $selectedcmid) {
         $meta = $cmindex[$selectedcmid] ?? null;
         if ($meta === null) {
+            continue;
+        }
+
+        // mod_folder: expand into one job per file in the folder.
+        if ($meta['modname'] === 'folder') {
+            $folderfiles = local_astusse_list_folder_files($selectedcmid);
+            if (empty($folderfiles)) {
+                $skipped[] = $meta['name'] . ': '
+                    . get_string('ingest:folder_empty_skipped', 'local_astusse');
+                continue;
+            }
+            foreach ($folderfiles as $folderfile) {
+                try {
+                    local_astusse_create_ingest_job([
+                        'userid' => (int)$USER->id,
+                        'courseid' => $courseid,
+                        'targetcourseids' => $validatedcourseids,
+                        'sourcetype' => 'folder',
+                        'sourcecmid' => $selectedcmid,
+                        'fileareaitemid' => $folderfile['fileid'],
+                        'filename' => $folderfile['filename'],
+                        'mimetype' => $folderfile['mimetype'],
+                        'filesize' => $folderfile['filesize'],
+                    ]);
+                    $queued++;
+                } catch (\Throwable $e) {
+                    $skipped[] = $folderfile['filename'] . ': ' . $e->getMessage();
+                }
+            }
             continue;
         }
 
