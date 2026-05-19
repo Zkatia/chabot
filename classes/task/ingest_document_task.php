@@ -98,7 +98,11 @@ class ingest_document_task extends \core\task\adhoc_task {
             $mimetype = $resolved['mimetype'];
 
             $client = new \local_astusse\api_client();
-            $result = $client->ingest_document_for_user($user, $targets, $filepath, $filename, $mimetype);
+            // T1 : propagate Moodle source identifiers so the backend can later resolve
+            // "cmid -> document_id" when an apprenant consults the resource.
+            $sourcecmid = isset($job->sourcecmid) && (int)$job->sourcecmid > 0 ? (int)$job->sourcecmid : null;
+            $sourcetype = !empty($job->sourcetype) ? (string)$job->sourcetype : null;
+            $result = $client->ingest_document_for_user($user, $targets, $filepath, $filename, $mimetype, $sourcecmid, $sourcetype);
 
             $httpstatus = (int)($result['status'] ?? 0);
             $json = $result['body_json'] ?? null;

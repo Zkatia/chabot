@@ -332,7 +332,9 @@ class api_client {
         array $courseids,
         string $filepath,
         string $filename,
-        string $mimetype
+        string $mimetype,
+        ?int $sourcecmid = null,
+        ?string $sourcetype = null
     ): array {
         $token = \local_astusse_generate_user_token($user);
         if ($token === false) {
@@ -357,9 +359,61 @@ class api_client {
             $queryparts[] = 'courseId=' . rawurlencode((string)$courseid);
         }
         $queryparts[] = 'trainerId=' . rawurlencode($trainerid);
+
+        // T1 review cycle tracking : tag the document with its originating Moodle module.
+        // Optional - omitted for raw file uploads not tied to a specific cmid.
+        if ($sourcecmid !== null && $sourcecmid > 0) {
+            $queryparts[] = 'sourceCmid=' . rawurlencode((string)$sourcecmid);
+        }
+        if ($sourcetype !== null && $sourcetype !== '') {
+            $queryparts[] = 'sourceType=' . rawurlencode($sourcetype);
+        }
+
         $path = '/api/rag/ingest?' . implode('&', $queryparts);
 
         return $this->request_multipart_file('POST', $path, $token, $filepath, $filename, $mimetype);
+    }
+
+    /**
+     * Backfill source_cmid and source_type on an existing rag_document, identified
+     * by its ingestion job id (= local_astusse_ingest_jobs.backendjobid).
+     *
+     * Used by the one-shot scheduled task {@see \local_astusse\task\backfill_rag_source_cmid}.
+     * Requires the JWT to carry the ADMIN role (typical Moodle site admin).
+     *
+     * Returns the standard request_json result : ['status' => HTTP, 'body_json' => ...].
+     * Expected HTTP codes :
+     *   - 204 : updated
+     *   - 200 : already filled (no-op)
+     *   - 404 : job id unknown on backend
+     *
+     * @param \stdClass $user        Admin user used to mint the JWT.
+     * @param string    $backendjobid Backend job UUID (= rag_ingestion_jobs.job_id).
+     * @param int       $sourcecmid  Moodle cmid of the source module.
+     * @param string    $sourcetype  Moodle sourcetype ('page','resource','h5pactivity',...).
+     * @return array
+     */
+    public function backfill_rag_source_for_user(
+        \stdClass $user,
+        string $backendjobid,
+        int $sourcecmid,
+        string $sourcetype
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for admin user.');
+        }
+        if (trim($backendjobid) === '') {
+            throw new \Exception('backendjobid is required for source backfill.');
+        }
+
+        $path = '/api/admin/rag/documents/by-job/' . rawurlencode($backendjobid) . '/source';
+        $payload = [
+            'sourceCmid' => $sourcecmid,
+            'sourceType' => $sourcetype,
+        ];
+
+        return $this->request_json('POST', $path, $token, $payload);
     }
 
     /**

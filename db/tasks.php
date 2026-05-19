@@ -34,4 +34,15 @@ $tasks = [
         'dayofweek' => '*',
         'month' => '*',
     ],
+    // T1 backfill : run BEFORE cleanup (3:17) so we still see jobs that are
+    // about to be purged. Idempotent : a 2nd pass is a no-op API-side.
+    [
+        'classname' => 'local_astusse\task\backfill_rag_source_cmid',
+        'blocking' => 0,
+        'minute' => '0',
+        'hour' => '3',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
+    ],
 ];

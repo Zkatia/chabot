@@ -359,3 +359,4 @@ $string['jobs:retry_file_gone'] = 'The file associated to this job is no longer 
 
 // Scheduled task names.
 $string['task:cleanup_old_ingest_jobs'] = 'ASTUSSE — Purge finalised ingestion jobs (>30 days)';
+$string['task:backfill_rag_source_cmid'] = 'ASTUSSE — Backfill source cmid on legacy RAG documents (T1)';
