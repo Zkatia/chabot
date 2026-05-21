@@ -45,4 +45,14 @@ $tasks = [
         'dayofweek' => '*',
         'month' => '*',
     ],
+    // T1 : purge processed consultation-queue rows (>7 days).
+    [
+        'classname' => 'local_astusse\task\cleanup_consultation_queue',
+        'blocking' => 0,
+        'minute' => '37',
+        'hour' => '3',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
+    ],
 ];

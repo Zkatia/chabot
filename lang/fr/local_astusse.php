@@ -360,3 +360,4 @@ $string['jobs:retry_file_gone'] = 'Le fichier associé à ce job n\'est plus dis
 // Scheduled task names.
 $string['task:cleanup_old_ingest_jobs'] = 'ASTUSSE — Purge des ingestions terminées (>30 jours)';
 $string['task:backfill_rag_source_cmid'] = 'ASTUSSE — Backfill du cmid source sur les anciens documents RAG (T1)';
+$string['task:cleanup_consultation_queue'] = 'ASTUSSE — Purge de la file de consultations traitées (T1, >7 jours)';

@@ -375,6 +375,47 @@ class api_client {
     }
 
     /**
+     * Log a resource consultation for the given apprenant (T1).
+     *
+     * Sends the event to POST /api/review/log_consultation. The backend dedups
+     * on a 30s window and silently ignores resources not indexed in the RAG.
+     *
+     * Returns the standard request_json result : ['status' => HTTP, 'body_json' => ...].
+     * Expected HTTP codes :
+     *   - 202 : event handled (stored or deduplicated)
+     *   - 204 : resource not indexed -> ignore silently
+     *
+     * @param \stdClass $user       Apprenant who consulted the resource.
+     * @param int       $cmid       Moodle course module id of the resource.
+     * @param string    $sourcetype Moodle module type ('page','resource',...).
+     * @param int       $courseid   Course in which the resource was consulted.
+     * @param int       $viewedat   Unix timestamp of the consultation.
+     * @return array
+     */
+    public function log_consultation_for_user(
+        \stdClass $user,
+        int $cmid,
+        string $sourcetype,
+        int $courseid,
+        int $viewedat
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+
+        $payload = [
+            'resourceCmid' => $cmid,
+            'sourceType' => $sourcetype,
+            'courseId' => $courseid,
+            // ISO 8601 UTC with explicit Z, parseable by java.time.Instant.
+            'consultedAt' => gmdate('Y-m-d\TH:i:s\Z', $viewedat),
+        ];
+
+        return $this->request_json('POST', '/api/review/log_consultation', $token, $payload);
+    }
+
+    /**
      * Backfill source_cmid and source_type on an existing rag_document, identified
      * by its ingestion job id (= local_astusse_ingest_jobs.backendjobid).
      *
@@ -579,7 +620,9 @@ class api_client {
         $jsonerror = json_last_error();
         $jsonerrormessage = $jsonerror === JSON_ERROR_NONE ? '' : json_last_error_msg();
 
-        if ($jsonerror !== JSON_ERROR_NONE) {
+        // An empty body (e.g. 202 Accepted / 204 No Content) is legitimate and is NOT a
+        // decode error worth logging — otherwise endpoints that return no content spam the logs.
+        if (trim((string)$body) !== '' && $jsonerror !== JSON_ERROR_NONE) {
             error_log('local_astusse JSON decode failed for ' . $url . ': ' . $jsonerrormessage . '. Body preview: ' .
                 substr($body, 0, 500));
         }
