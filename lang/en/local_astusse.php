@@ -361,3 +361,22 @@ $string['jobs:retry_file_gone'] = 'The file associated to this job is no longer 
 $string['task:cleanup_old_ingest_jobs'] = 'ASTUSSE — Purge finalised ingestion jobs (>30 days)';
 $string['task:backfill_rag_source_cmid'] = 'ASTUSSE — Backfill source cmid on legacy RAG documents (T1)';
 $string['task:cleanup_consultation_queue'] = 'ASTUSSE — Purge processed consultation queue rows (T1, >7 days)';
+
+// T2 — Spaced repetition settings.
+$string['review_heading'] = 'Spaced repetition';
+$string['review_heading_desc'] = 'Settings for the review pop-up proposed at the learner\'s login.';
+$string['review_recency_days'] = 'Recency window (days)';
+$string['review_recency_days_desc'] = 'A resource consulted within the last N days becomes a candidate for a first review quiz (bootstrap). Does not limit long-term review, which FSRS schedules over months/years. Default: 60 (~2 months).';
+$string['review_min_eligible'] = 'Minimum number of resources';
+$string['review_min_eligible_desc'] = 'Minimum number of eligible resources to trigger the pop-up. Default: 1.';
+
+// T2 — Proposal pop-up (State 1).
+$string['popup:title'] = '💡 Suggested review';
+$string['popup:greeting'] = 'Hello {$a->name},';
+$string['popup:consulted'] = 'You consulted {$a->consulted} resources across {$a->courses} courses recently.';
+$string['popup:fragile'] = '⚠ {$a->fragile} concepts are below 90% predicted retention.';
+$string['popup:toconsolidate'] = '{$a->reviewable} resources would benefit from consolidation.';
+$string['popup:pitch'] = 'An interleaved quiz (5 questions, ~3 min) would strengthen your memory.';
+$string['popup:launch'] = 'Start';
+$string['popup:later'] = 'Later';
+$string['popup:close'] = 'Cancel';

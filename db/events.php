@@ -39,4 +39,11 @@ $observers = [
         'internal'  => false,
         'priority'  => 200,
     ],
+    // T2 : a la connexion, on arme un flag de session pour proposer le pop-up
+    // de revision sur la premiere page rendue (cf. local_astusse_before_footer).
+    [
+        'eventname' => '\core\event\user_loggedin',
+        'callback'  => '\local_astusse\observer\login_observer::on_user_loggedin',
+        'internal'  => false,
+    ],
 ];

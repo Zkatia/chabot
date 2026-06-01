@@ -2270,3 +2270,90 @@
         justify-content: center;
     }
 }
+
+/* ===================================================================== */
+/* T2 — Spaced-repetition pop-up (Etat 1 : Proposition)                  */
+/* ===================================================================== */
+.local-astusse-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10500;
+    padding: 16px;
+}
+
+.local-astusse-popup-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-width: 460px;
+    overflow: hidden;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.local-astusse-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e6e6e6;
+    background: #f6f8fb;
+}
+
+.local-astusse-popup-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.local-astusse-popup-cross {
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    padding: 4px 8px;
+}
+
+.local-astusse-popup-cross:hover {
+    color: #000;
+}
+
+.local-astusse-popup-body {
+    padding: 18px;
+}
+
+.local-astusse-popup-body p {
+    margin: 0 0 10px;
+}
+
+.local-astusse-popup-greeting {
+    font-weight: 600;
+}
+
+.local-astusse-popup-review {
+    color: #b35900;
+    font-weight: 600;
+}
+
+.local-astusse-popup-pitch {
+    color: #444;
+}
+
+.local-astusse-popup-footer {
+    display: flex;
+    gap: 10px;
+    padding: 14px 18px;
+    border-top: 1px solid #e6e6e6;
+    background: #fafafa;
+    flex-wrap: wrap;
+}
+
+.local-astusse-popup-footer .btn {
+    flex: 1 1 auto;
+}

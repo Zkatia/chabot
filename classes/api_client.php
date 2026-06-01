@@ -416,6 +416,36 @@ class api_client {
     }
 
     /**
+     * Check whether a review pop-up should be proposed to the apprenant (T2).
+     *
+     * Calls GET /api/review/get_pending_review with a short timeout : the page
+     * must never wait on the AI API. Returns the standard request_json result.
+     *
+     * @param \stdClass $user        Apprenant.
+     * @param int       $recencydays Recency window for the amorçage criterion.
+     * @param int       $mineligible Minimum eligible resources to trigger the pop-up.
+     * @param int       $timeoutseconds HTTP timeout (defaults to 2s, matches UX budget).
+     * @return array
+     */
+    public function get_pending_review_for_user(
+        \stdClass $user,
+        int $recencydays,
+        int $mineligible,
+        int $timeoutseconds = 2
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+
+        $path = '/api/review/get_pending_review'
+            . '?recencyDays=' . rawurlencode((string)$recencydays)
+            . '&minEligible=' . rawurlencode((string)$mineligible);
+
+        return $this->request_json('GET', $path, $token, null, $timeoutseconds);
+    }
+
+    /**
      * Backfill source_cmid and source_type on an existing rag_document, identified
      * by its ingestion job id (= local_astusse_ingest_jobs.backendjobid).
      *

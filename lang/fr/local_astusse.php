@@ -361,3 +361,22 @@ $string['jobs:retry_file_gone'] = 'Le fichier associé à ce job n\'est plus dis
 $string['task:cleanup_old_ingest_jobs'] = 'ASTUSSE — Purge des ingestions terminées (>30 jours)';
 $string['task:backfill_rag_source_cmid'] = 'ASTUSSE — Backfill du cmid source sur les anciens documents RAG (T1)';
 $string['task:cleanup_consultation_queue'] = 'ASTUSSE — Purge de la file de consultations traitées (T1, >7 jours)';
+
+// T2 — Reglages revision espacee.
+$string['review_heading'] = 'Révision espacée';
+$string['review_heading_desc'] = 'Réglages du pop-up de révision proposé à la connexion de l\'apprenant.';
+$string['review_recency_days'] = 'Fenêtre de récence (jours)';
+$string['review_recency_days_desc'] = 'Une ressource consultée dans les N derniers jours devient candidate à un premier quiz de révision (amorçage). Ne limite pas la révision long-terme, gérée par FSRS sur des mois/années. Défaut : 60 (≈ 2 mois).';
+$string['review_min_eligible'] = 'Nombre minimum de ressources';
+$string['review_min_eligible_desc'] = 'Nombre minimum de ressources éligibles pour déclencher le pop-up. Défaut : 1.';
+
+// T2 — Pop-up de proposition (Etat 1).
+$string['popup:title'] = '💡 Révision suggérée';
+$string['popup:greeting'] = 'Bonjour {$a->name},';
+$string['popup:consulted'] = 'Tu as consulté {$a->consulted} ressources sur {$a->courses} cours ces derniers jours.';
+$string['popup:fragile'] = '⚠ {$a->fragile} notions sont en dessous de 90 % de rétention prédite.';
+$string['popup:toconsolidate'] = '{$a->reviewable} ressources gagneraient à être consolidées.';
+$string['popup:pitch'] = 'Un quiz interleavé (5 questions, ~3 min) consoliderait ta mémoire.';
+$string['popup:launch'] = 'Lancer';
+$string['popup:later'] = 'Plus tard';
+$string['popup:close'] = 'Annuler';

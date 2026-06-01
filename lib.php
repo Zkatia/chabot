@@ -2518,3 +2518,43 @@ function local_astusse_describe_ingest_job(\stdClass $job): array {
         'courses' => $targets,
     ];
 }
+
+/**
+ * T2 : inject the spaced-repetition pop-up loader on the first page rendered
+ * after login (typically the dashboard /my).
+ *
+ * Called automatically by Moodle during footer generation. The login observer
+ * arms a session flag ; we consume it here so the loader is injected once per
+ * login. The actual eligibility check happens asynchronously in popup_check.php,
+ * so the page render never waits on the AI API.
+ *
+ * @return string Always empty — JS is added via $PAGE->requires.
+ */
+function local_astusse_before_footer(): string {
+    global $PAGE, $SESSION, $CFG;
+
+    // Real logged-in users only, on standard HTML pages.
+    if (!isloggedin() || isguestuser()) {
+        return '';
+    }
+    if (CLI_SCRIPT || (defined('AJAX_SCRIPT') && AJAX_SCRIPT) || (defined('WS_SERVER') && WS_SERVER)) {
+        return '';
+    }
+
+    // Inject once per login : the flag is set by login_observer and consumed here.
+    if (empty($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG})) {
+        return '';
+    }
+    unset($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG});
+
+    // Global opt-out (preference managed in T5 ; default off).
+    if (get_user_preferences('local_astusse_review_optout', 0)) {
+        return '';
+    }
+
+    // The loader reads M.cfg.wwwroot + M.cfg.sesskey itself, so no extra config
+    // is passed here (avoids a JS init race). Loaded in the footer = DOM ready.
+    $PAGE->requires->js(new moodle_url('/local/astusse/js/spaced_repetition_popup.js'));
+
+    return '';
+}

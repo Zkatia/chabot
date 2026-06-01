@@ -126,4 +126,27 @@ if ($hassiteconfig) {
         get_string('rag_scope_sync_state_title', 'local_astusse'),
         local_astusse_scope_policy_settings_state_html()
     ));
+
+    // --- T2 : revision espacee (pop-up a la connexion) ---
+    $settings->add(new admin_setting_heading(
+        'local_astusse/review_heading',
+        get_string('review_heading', 'local_astusse'),
+        get_string('review_heading_desc', 'local_astusse')
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_astusse/review_recency_days',
+        get_string('review_recency_days', 'local_astusse'),
+        get_string('review_recency_days_desc', 'local_astusse'),
+        '60',
+        PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_astusse/review_min_eligible',
+        get_string('review_min_eligible', 'local_astusse'),
+        get_string('review_min_eligible_desc', 'local_astusse'),
+        '1',
+        PARAM_INT
+    ));
 }
