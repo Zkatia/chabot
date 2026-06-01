@@ -2357,3 +2357,162 @@
 .local-astusse-popup-footer .btn {
     flex: 1 1 auto;
 }
+
+/* T3 etape 6 — Loader / erreur */
+.local-astusse-popup-loading {
+    text-align: center;
+    padding: 26px 18px;
+}
+
+.local-astusse-popup-spinner {
+    width: 32px;
+    height: 32px;
+    margin: 0 auto 14px;
+    border: 3px solid #d8d8d8;
+    border-top-color: #1a73e8;
+    border-radius: 50%;
+    animation: localAstusseSpin 0.9s linear infinite;
+}
+
+@keyframes localAstusseSpin {
+    to { transform: rotate(360deg); }
+}
+
+.local-astusse-popup-error {
+    color: #b00020;
+    font-weight: 500;
+}
+
+/* T3 etape 6 — Etat 2 : Question */
+.local-astusse-quiz-progress {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.local-astusse-quiz-prompt {
+    font-size: 1.05em;
+    font-weight: 500;
+    margin-bottom: 14px;
+    color: #222;
+}
+
+.local-astusse-quiz-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.local-astusse-quiz-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.local-astusse-quiz-choice:hover {
+    background: #f5f7fa;
+    border-color: #c8d6f0;
+}
+
+.local-astusse-quiz-choice input[type="radio"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.local-astusse-quiz-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95em;
+    resize: vertical;
+}
+
+/* T3 etape 6 — Etat 3 : Feedback */
+.local-astusse-quiz-verdict {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.local-astusse-quiz-verdict.correct {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.local-astusse-quiz-verdict.incorrect {
+    background: #fce8e6;
+    color: #c5221f;
+}
+
+.local-astusse-quiz-verdict.pending {
+    background: #fef7e0;
+    color: #8a6d00;
+}
+
+.local-astusse-quiz-correct {
+    font-weight: 500;
+    color: #1e7e34;
+    margin-bottom: 10px;
+}
+
+.local-astusse-quiz-explanation {
+    color: #444;
+    line-height: 1.5;
+    border-left: 3px solid #1a73e8;
+    padding-left: 12px;
+    background: #f7f9fc;
+    padding: 10px 12px;
+    border-radius: 0 4px 4px 0;
+}
+
+/* T3 etape 6 — Etat 4 : Bilan */
+.local-astusse-bilan-score {
+    font-size: 1.5em;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 12px;
+    color: #1a73e8;
+}
+
+.local-astusse-bilan-reco {
+    text-align: center;
+    font-size: 1.02em;
+    color: #333;
+    margin-bottom: 16px;
+}
+
+.local-astusse-bilan-perres-label {
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #555;
+}
+
+.local-astusse-bilan-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.local-astusse-bilan-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+    color: #444;
+    font-size: 0.95em;
+}
+
+.local-astusse-bilan-list li:last-child {
+    border-bottom: none;
+}

@@ -68,6 +68,21 @@
         });
     }
 
+    // T3 etape 7 : pre-remplit le textarea si on arrive depuis "Demander au tuteur"
+    // (chat.php a injecte draftMessage dans config.defaults).
+    if (messageInput && config.defaults && config.defaults.draftMessage) {
+        messageInput.value = config.defaults.draftMessage;
+        // Trigger auto-resize sur le contenu pre-rempli.
+        messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+        // Focus en fin de saisie pour que l'apprenant puisse editer / completer.
+        try {
+            messageInput.focus();
+            messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
+        } catch (e) {
+            // setSelectionRange peut throw sur certains navigateurs anciens : non bloquant.
+        }
+    }
+
     function createSessionId() {
         return 'astusse-' + Date.now() + '-' + Math.random().toString(16).slice(2, 10);
     }

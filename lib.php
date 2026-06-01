@@ -2554,7 +2554,144 @@ function local_astusse_before_footer(): string {
 
     // The loader reads M.cfg.wwwroot + M.cfg.sesskey itself, so no extra config
     // is passed here (avoids a JS init race). Loaded in the footer = DOM ready.
+    // T3 etape 6 : expose les strings du quiz pour M.util.get_string().
+    $PAGE->requires->strings_for_js([
+        'quiz:loading', 'quiz:waiting_generation', 'quiz:question_progress',
+        'quiz:libre_placeholder', 'quiz:validate', 'quiz:next', 'quiz:see_result',
+        'quiz:feedback_correct', 'quiz:feedback_incorrect', 'quiz:feedback_pending',
+        'quiz:correct_answer_qcm', 'quiz:correct_answer_libre',
+        'quiz:error_load', 'quiz:error_send', 'quiz:error_generating_timeout',
+        'quiz:error_expired', 'quiz:error_failed',
+        'bilan:title', 'bilan:score', 'bilan:consolidation', 'bilan:partial', 'bilan:weak',
+        'bilan:see_resource', 'bilan:ask_tutor', 'bilan:finish',
+        'bilan:perresource_label', 'bilan:perresource_line',
+    ], 'local_astusse');
     $PAGE->requires->js(new moodle_url('/local/astusse/js/spaced_repetition_popup.js'));
 
     return '';
+}
+
+/**
+ * T3 etape 7 : compose un message brouillon pour le chat "Demander au tuteur"
+ * a partir du contexte d'une session quiz.
+ *
+ * Appelle GET /api/review/quiz_context/{sessionId}. Si l'API est down, retourne
+ * une chaine vide (defensif : on ouvre quand meme le chat).
+ *
+ * Format genere (FR) :
+ *
+ *   Aide-moi a comprendre ces points sur lesquels j'ai eu du mal lors du quiz :
+ *   1. <prompt>
+ *      Ma reponse : <userAnswer>
+ *      (Reponse incorrecte / Reponse partielle)
+ *   ...
+ *
+ * @param \stdClass $user
+ * @param string    $quizsessionid
+ * @return string  Brouillon a injecter dans le textarea, ou '' si rien d'exploitable.
+ */
+function local_astusse_build_quiz_tutor_draft(\stdClass $user, string $quizsessionid): string {
+    try {
+        $client = new \local_astusse\api_client();
+        $result = $client->fetch_quiz_context_for_user($user, $quizsessionid);
+    } catch (\Throwable $e) {
+        error_log('local_astusse build_quiz_tutor_draft: ' . $e->getMessage());
+        return '';
+    }
+    $status = (int)($result['status'] ?? 0);
+    if ($status !== 200) {
+        return '';
+    }
+    $body = is_array($result['body_json'] ?? null) ? $result['body_json'] : null;
+    if (!$body || empty($body['entries'])) {
+        return '';
+    }
+
+    // Focus sur les questions ratees ou en attente. Si tout est correct,
+    // l'apprenant n'a probablement pas besoin du tuteur -- on retourne quand
+    // meme un brouillon generique pour ne pas casser le flux.
+    $failed = [];
+    $pending = [];
+    foreach ($body['entries'] as $e) {
+        if (!isset($e['correct'])) {
+            $pending[] = $e;
+        } else if ($e['correct'] === false) {
+            $failed[] = $e;
+        }
+    }
+    $focus = array_merge($failed, $pending);
+    if (empty($focus)) {
+        return get_string('tutor:draft_intro_allcorrect', 'local_astusse');
+    }
+
+    $lines = [get_string('tutor:draft_intro', 'local_astusse'), ''];
+    $i = 1;
+    foreach ($focus as $e) {
+        $prompt = trim((string)($e['prompt'] ?? ''));
+        $useranswer = trim((string)($e['userAnswer'] ?? ''));
+        $verdict = isset($e['correct']) && $e['correct'] === false
+            ? get_string('tutor:draft_verdict_incorrect', 'local_astusse')
+            : get_string('tutor:draft_verdict_pending', 'local_astusse');
+        if ($prompt === '') {
+            continue;
+        }
+        $lines[] = $i . '. ' . $prompt;
+        if ($useranswer !== '') {
+            $lines[] = '   ' . get_string('tutor:draft_my_answer', 'local_astusse',
+                (object)['answer' => $useranswer]);
+        }
+        $lines[] = '   ' . $verdict;
+        $lines[] = '';
+        $i++;
+    }
+    return rtrim(implode("\n", $lines));
+}
+
+/**
+ * T3 etape 6 : resout les titres Moodle (cours + ressource + URL) pour une liste
+ * de cmids, en un seul aller-retour DB. Renvoyer un map cmid => [name, course, url].
+ *
+ * Defensive : un cmid invalide / inaccessible donne simplement un fallback "Resource #N".
+ *
+ * @param int[] $cmids
+ * @return array<int, array{name:string, course:string, url:string}>
+ */
+function local_astusse_resolve_cmid_titles(array $cmids): array {
+    global $DB;
+
+    $cmids = array_values(array_unique(array_filter(array_map('intval', $cmids), function ($v) { return $v > 0; })));
+    if (empty($cmids)) {
+        return [];
+    }
+
+    [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
+    $records = $DB->get_records_sql(
+        'SELECT cm.id AS cmid, cm.course, cm.module, cm.instance, m.name AS modname, c.fullname AS coursename
+         FROM {course_modules} cm
+         JOIN {modules} m ON m.id = cm.module
+         JOIN {course} c ON c.id = cm.course
+         WHERE cm.id ' . $insql,
+        $params
+    );
+
+    $out = [];
+    foreach ($records as $r) {
+        $modname = (string)$r->modname;
+        // Recupere le nom de l'instance (title du module).
+        $instance = $DB->get_record($modname, ['id' => $r->instance], 'id, name');
+        $name = $instance && isset($instance->name) ? (string)$instance->name : ('Resource #' . $r->cmid);
+        $url = (new moodle_url('/mod/' . $modname . '/view.php', ['id' => $r->cmid]))->out(false);
+        $out[(int)$r->cmid] = [
+            'name'   => $name,
+            'course' => (string)$r->coursename,
+            'url'    => $url,
+        ];
+    }
+    // Fallback pour les cmids non resolus (module supprime ?).
+    foreach ($cmids as $cmid) {
+        if (!isset($out[$cmid])) {
+            $out[$cmid] = ['name' => 'Resource #' . $cmid, 'course' => '', 'url' => ''];
+        }
+    }
+    return $out;
 }

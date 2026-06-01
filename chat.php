@@ -30,6 +30,10 @@ require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/chat_ui.php');
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
+$quizsessionid = optional_param('quizSessionId', '', PARAM_RAW_TRIMMED);
+if ($quizsessionid !== '' && !preg_match('/^[0-9a-fA-F-]{36}$/', $quizsessionid)) {
+    $quizsessionid = '';
+}
 
 if ($courseid > 0) {
     // ── Course mode ──────────────────────────────────────────────────────────
@@ -126,13 +130,25 @@ if ($courseid > 0) {
     ];
 }
 
+// T3 etape 7 : si on arrive depuis le bouton "Demander au tuteur" du pop-up,
+// on pre-remplit le textarea avec un brouillon construit a partir du contexte
+// du quiz (questions ratees / imparfaites). Le tuteur saura l'enrichir cote API.
+$defaults = ['agentType' => 'explicatif'];
+if ($quizsessionid !== '') {
+    $draft = local_astusse_build_quiz_tutor_draft($USER, $quizsessionid);
+    if ($draft !== '') {
+        $defaults['draftMessage'] = $draft;
+        $defaults['quizSessionId'] = $quizsessionid;
+    }
+}
+
 echo $OUTPUT->header();
 local_astusse_render_chat_ui($config + [
     'endpoint'       => (new moodle_url('/local/astusse/chat_api.php'))->out(false),
     'streamEndpoint' => (new moodle_url('/local/astusse/chat_stream.php'))->out(false),
     'historyEndpoint' => (new moodle_url('/local/astusse/chat_history.php'))->out(false),
     'sesskey'        => sesskey(),
-    'defaults'       => ['agentType' => 'explicatif'],
+    'defaults'       => $defaults,
     'labels'         => [
         'agents' => [
             'explicatif' => get_string('chat:agent_explicatif', 'local_astusse'),

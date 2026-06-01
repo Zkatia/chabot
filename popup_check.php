@@ -95,6 +95,10 @@ $reviewline = $a->fragile > 0
     ? get_string('popup:fragile', 'local_astusse', $a)
     : get_string('popup:toconsolidate', 'local_astusse', $a);
 
+// T3 : si la pre-generation a ete declenchee cote API, on propage l'ID au front.
+// Peut etre null (ex. profil memory / pre-gen indispo) — le JS gere les deux cas.
+$quizsessionid = isset($body['quizSessionId']) ? (string)$body['quizSessionId'] : null;
+
 echo json_encode([
     'hasPending'    => true,
     'title'         => get_string('popup:title', 'local_astusse'),
@@ -105,5 +109,6 @@ echo json_encode([
     'btnLaunch'     => get_string('popup:launch', 'local_astusse'),
     'btnLater'      => get_string('popup:later', 'local_astusse'),
     'btnClose'      => get_string('popup:close', 'local_astusse'),
+    'quizSessionId' => $quizsessionid,
 ]);
 die;

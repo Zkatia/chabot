@@ -380,3 +380,41 @@ $string['popup:pitch'] = 'Un quiz interleavé (5 questions, ~3 min) consoliderai
 $string['popup:launch'] = 'Lancer';
 $string['popup:later'] = 'Plus tard';
 $string['popup:close'] = 'Annuler';
+
+// T3 — Quiz (Etats 2, 3, 4).
+$string['quiz:loading'] = 'Préparation des questions…';
+$string['quiz:waiting_generation'] = 'Génération en cours, encore quelques secondes…';
+$string['quiz:question_progress'] = 'Question {$a->current} sur {$a->total}';
+$string['quiz:libre_placeholder'] = 'Écris ta réponse…';
+$string['quiz:validate'] = 'Valider';
+$string['quiz:next'] = 'Question suivante';
+$string['quiz:see_result'] = 'Voir le bilan';
+$string['quiz:feedback_correct'] = 'Bonne réponse';
+$string['quiz:feedback_incorrect'] = 'Réponse incorrecte';
+$string['quiz:feedback_pending'] = 'Réponse enregistrée, évaluation reportée au bilan.';
+$string['quiz:correct_answer_qcm'] = 'Bonne réponse : {$a}';
+$string['quiz:correct_answer_libre'] = 'Réponse attendue : {$a}';
+$string['quiz:error_load'] = 'Impossible de charger le quiz pour le moment. Réessaie plus tard.';
+$string['quiz:error_send'] = 'Erreur d\'envoi. Vérifie ta connexion et réessaie.';
+$string['quiz:error_generating_timeout'] = 'La génération prend plus de temps que prévu. Réessaie dans un instant.';
+$string['quiz:error_expired'] = 'Cette session de révision a expiré. Reviens demain.';
+$string['quiz:error_failed'] = 'La génération a échoué côté serveur. Reviens un peu plus tard.';
+
+// T3 — Bilan final (Etat 4).
+$string['bilan:title'] = 'Bilan de ta révision';
+$string['bilan:score'] = '{$a->correct} sur {$a->total} bonnes réponses';
+$string['bilan:consolidation'] = '✅ Mémoire consolidée. Prochaine révision dans {$a} jours.';
+$string['bilan:partial'] = 'Tu maîtrises l\'essentiel. Une ressource gagnerait à être révisée.';
+$string['bilan:weak'] = 'Quelques points clés à retravailler. Le tuteur IA peut t\'aider.';
+$string['bilan:see_resource'] = 'Voir la ressource';
+$string['bilan:ask_tutor'] = 'Demander au tuteur';
+$string['bilan:finish'] = 'Terminer';
+$string['bilan:perresource_label'] = 'Détail par ressource :';
+$string['bilan:perresource_line'] = '{$a->name} ({$a->course}) — {$a->correct}/{$a->total}';
+
+// T3 etape 7 — Brouillon "Demander au tuteur".
+$string['tutor:draft_intro'] = 'Aide-moi à comprendre ces points sur lesquels j\'ai eu du mal lors de mon quiz :';
+$string['tutor:draft_intro_allcorrect'] = 'Je viens de faire un quiz de révision. Peux-tu me proposer un approfondissement sur les points clés ?';
+$string['tutor:draft_my_answer'] = 'Ma réponse : {$a->answer}';
+$string['tutor:draft_verdict_incorrect'] = '(Réponse incorrecte)';
+$string['tutor:draft_verdict_pending'] = '(Réponse à évaluer)';

@@ -446,6 +446,112 @@ class api_client {
     }
 
     /**
+     * T3 etape 2 : recupere les questions du quiz pre-genere a la connexion.
+     *
+     * Timeout 8s : la session peut etre encore GENERATING (le plugin sait re-poller).
+     *
+     * @param \stdClass $user           Apprenant.
+     * @param string    $quizsessionid  UUID transmis par get_pending_review.
+     * @param int       $timeoutseconds Timeout HTTP.
+     * @return array
+     */
+    public function fetch_quiz_for_user(
+        \stdClass $user,
+        string $quizsessionid,
+        int $timeoutseconds = 8
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        $payload = ['quizSessionId' => $quizsessionid];
+        return $this->request_json('POST', '/api/review/generate_interleaved_quiz',
+            $token, $payload, $timeoutseconds);
+    }
+
+    /**
+     * T3 etape 3 : envoie une reponse per-question. Inclut le LLM-juge cote API
+     * pour les libres, donc timeout 10s pour absorber les 6s de juge + reseau.
+     *
+     * @param \stdClass    $user           Apprenant.
+     * @param string       $quizsessionid  UUID de la session.
+     * @param string       $questionid     UUID de la question repondue.
+     * @param ?int         $useranswerindex Index choisi (QCM) ou null.
+     * @param ?string      $useranswertext  Texte libre (LIBRE) ou null.
+     * @param int          $responsetimems  Duree de reflexion mesuree client.
+     * @param int          $timeoutseconds  Timeout HTTP (defaut 10s).
+     * @return array
+     */
+    public function send_quiz_answer_for_user(
+        \stdClass $user,
+        string $quizsessionid,
+        string $questionid,
+        ?int $useranswerindex,
+        ?string $useranswertext,
+        int $responsetimems,
+        int $timeoutseconds = 10
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        $payload = [
+            'quizSessionId'    => $quizsessionid,
+            'questionId'       => $questionid,
+            'userAnswerIndex'  => $useranswerindex,
+            'userAnswerText'   => $useranswertext,
+            'responseTimeMs'   => $responsetimems,
+        ];
+        return $this->request_json('POST', '/api/review/record_quiz_answer',
+            $token, $payload, $timeoutseconds);
+    }
+
+    /**
+     * T3 etape 7 : charge le contexte d'une session quiz (questions, reponses
+     * de l'apprenant, verdicts) pour pre-remplir le chat "Demander au tuteur".
+     *
+     * @param \stdClass $user           Apprenant.
+     * @param string    $quizsessionid  UUID de la session.
+     * @param int       $timeoutseconds Timeout HTTP.
+     * @return array
+     */
+    public function fetch_quiz_context_for_user(
+        \stdClass $user,
+        string $quizsessionid,
+        int $timeoutseconds = 3
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        $path = '/api/review/quiz_context/' . rawurlencode($quizsessionid);
+        return $this->request_json('GET', $path, $token, null, $timeoutseconds);
+    }
+
+    /**
+     * T3 etape 4 : finalise la session et recupere le bilan. Endpoint
+     * transactionnel cote API (FSRS + UPSERT fsrs_state), idempotent.
+     *
+     * @param \stdClass $user           Apprenant.
+     * @param string    $quizsessionid  UUID de la session a finaliser.
+     * @param int       $timeoutseconds Timeout HTTP.
+     * @return array
+     */
+    public function finalize_quiz_for_user(
+        \stdClass $user,
+        string $quizsessionid,
+        int $timeoutseconds = 5
+    ): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        $payload = ['quizSessionId' => $quizsessionid];
+        return $this->request_json('POST', '/api/review/record_quiz_result',
+            $token, $payload, $timeoutseconds);
+    }
+
+    /**
      * Backfill source_cmid and source_type on an existing rag_document, identified
      * by its ingestion job id (= local_astusse_ingest_jobs.backendjobid).
      *
