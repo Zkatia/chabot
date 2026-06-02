@@ -72,6 +72,7 @@ if ($status === 200 && is_array($body) && !empty($body['perResource'])) {
             $r['resourceName'] = $titles[$cmid]['name'];
             $r['courseName']   = $titles[$cmid]['course'];
             $r['viewUrl']      = $titles[$cmid]['url'];
+            $r['courseUrl']    = $titles[$cmid]['courseUrl'];
         }
     }
     unset($r);
@@ -81,6 +82,7 @@ if ($status === 200 && is_array($body) && !empty($body['perResource'])) {
         $body['fragileResourceName'] = $t['name'];
         $body['fragileCourseName']   = $t['course'];
         $body['fragileViewUrl']      = $t['url'];
+        $body['fragileCourseUrl']    = $t['courseUrl'];
     }
 }
 

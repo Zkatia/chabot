@@ -66,10 +66,15 @@ $mineligible = (int)get_config('local_astusse', 'review_min_eligible');
 if ($mineligible < 1) {
     $mineligible = 1;
 }
+$maxresources = (int)get_config('local_astusse', 'review_max_resources_per_quiz');
+if ($maxresources < 2) {
+    // Plancher dur : la spec T3 impose au moins 2 ressources alternees.
+    $maxresources = 3;
+}
 
 try {
     $client = new \local_astusse\api_client();
-    $result = $client->get_pending_review_for_user($USER, $recencydays, $mineligible);
+    $result = $client->get_pending_review_for_user($USER, $recencydays, $mineligible, $maxresources);
 } catch (\Throwable $e) {
     // API down/slow/unreachable → silent, no pop-up (defensive behaviour).
     local_astusse_popup_none('api_error');
@@ -83,32 +88,66 @@ if ($status !== 200 || $body === null || empty($body['hasPending'])) {
 }
 
 // Compose the (localised) texts server-side from the counters.
-$a = (object)[
-    'name'       => fullname($USER),
-    'consulted'  => (int)($body['consultedCount'] ?? 0),
-    'courses'    => (int)($body['courseCount'] ?? 0),
-    'reviewable' => (int)($body['reviewableCount'] ?? 0),
-    'fragile'    => (int)($body['fragileCount'] ?? 0),
-];
+// T3 etape 6 fix definitif : i18n est FR-only v1 (decision #11) et le cache
+// strings Moodle pose probleme dans cet environnement -- on hardcode les
+// libelles ici, plus aucune dependance a get_string/lang/cache.
+$displayname = fullname($USER);
+$consulted   = (int)($body['consultedCount'] ?? 0);
+$courses     = (int)($body['courseCount'] ?? 0);
+$reviewable  = (int)($body['reviewableCount'] ?? 0);
+$fragile     = (int)($body['fragileCount'] ?? 0);
 
-$reviewline = $a->fragile > 0
-    ? get_string('popup:fragile', 'local_astusse', $a)
-    : get_string('popup:toconsolidate', 'local_astusse', $a);
+$consultedline = "Tu as consulté {$consulted} ressources sur {$courses} cours ces derniers jours.";
+$reviewline = $fragile > 0
+    ? "⚠ {$fragile} notions sont en dessous de 90 % de rétention prédite."
+    : "{$reviewable} ressources gagneraient à être consolidées.";
 
 // T3 : si la pre-generation a ete declenchee cote API, on propage l'ID au front.
-// Peut etre null (ex. profil memory / pre-gen indispo) — le JS gere les deux cas.
 $quizsessionid = isset($body['quizSessionId']) ? (string)$body['quizSessionId'] : null;
+
+// Dict de strings FR pour le quiz (Etats 2, 3, 4). Hardcode.
+// Templates : {placeholder} interpole cote JS via le helper fmt(tpl, params).
+$quizstrings = [
+    'loading'                 => 'Préparation des questions…',
+    'waitingGeneration'       => 'Génération en cours, encore quelques secondes…',
+    'librePlaceholder'        => 'Écris ta réponse…',
+    'validate'                => 'Valider la réponse',
+    'next'                    => 'Question suivante',
+    'seeResult'               => 'Voir le bilan',
+    'feedbackCorrect'         => 'Bonne réponse',
+    'feedbackIncorrect'       => 'Réponse incorrecte',
+    'feedbackPending'         => 'Réponse enregistrée, évaluation reportée au bilan.',
+    'errorLoad'               => 'Impossible de charger le quiz pour le moment. Réessaie plus tard.',
+    'errorSend'               => 'Erreur d\'envoi. Vérifie ta connexion et réessaie.',
+    'errorGeneratingTimeout'  => 'La génération prend plus de temps que prévu. Réessaie dans un instant.',
+    'errorExpired'            => 'Cette session de révision a expiré. Reviens demain.',
+    'errorFailed'             => 'La génération a échoué côté serveur. Reviens un peu plus tard.',
+    'bilanTitle'              => 'Bilan de la session',
+    'bilanPartial'            => 'Tu maîtrises l\'essentiel. Une ressource gagnerait à être révisée.',
+    'bilanWeak'               => 'Quelques points clés à retravailler. Le tuteur IA peut t\'aider.',
+    'bilanSeeResource'        => 'Voir la ressource',
+    'bilanAskTutor'           => 'Demander au tuteur',
+    'bilanFinish'             => 'Terminer',
+    'bilanPerresourceLabel'   => 'Détail par ressource :',
+    'questionProgressTpl'     => 'Question {current} sur {total}',
+    'correctAnswerQcmTpl'     => 'Bonne réponse : {answer}',
+    'correctAnswerLibreTpl'   => 'Réponse attendue : {answer}',
+    'bilanScoreTpl'           => '{correct} sur {total} bonnes réponses',
+    'bilanConsolidationTpl'   => '✅ Mémoire consolidée. Prochaine révision dans {days} jours.',
+    'bilanPerresourceLineTpl' => '{name} ({course}) — {correct}/{total}',
+];
 
 echo json_encode([
     'hasPending'    => true,
-    'title'         => get_string('popup:title', 'local_astusse'),
-    'greeting'      => get_string('popup:greeting', 'local_astusse', $a),
-    'consultedLine' => get_string('popup:consulted', 'local_astusse', $a),
+    'title'         => '💡 Révision suggérée',
+    'greeting'      => "Bonjour {$displayname},",
+    'consultedLine' => $consultedline,
     'reviewLine'    => $reviewline,
-    'pitch'         => get_string('popup:pitch', 'local_astusse'),
-    'btnLaunch'     => get_string('popup:launch', 'local_astusse'),
-    'btnLater'      => get_string('popup:later', 'local_astusse'),
-    'btnClose'      => get_string('popup:close', 'local_astusse'),
+    'pitch'         => 'Un quiz interleavé (5 questions, ~3 min) consoliderait ta mémoire.',
+    'btnLaunch'     => 'Lancer',
+    'btnLater'      => 'Plus tard',
+    'btnClose'      => 'Annuler',
     'quizSessionId' => $quizsessionid,
+    'strings'       => $quizstrings,
 ]);
 die;

@@ -2513,6 +2513,42 @@
     font-size: 0.95em;
 }
 
+.local-astusse-bilan-list li.mastered {
+    color: #1e7e34;
+}
+
+.local-astusse-bilan-list li.fragile {
+    color: #b58900;
+}
+
+.local-astusse-bilan-reco-block {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #f7f9fc;
+    border-radius: 4px;
+    border-left: 3px solid #1a73e8;
+}
+
+.local-astusse-bilan-reco-label {
+    font-weight: 600;
+    color: #555;
+    margin: 0 0 4px;
+    font-size: 0.92em;
+}
+
+.local-astusse-bilan-nextreview {
+    margin-top: 10px;
+    font-weight: 500;
+    color: #1a73e8;
+}
+
+.local-astusse-quiz-coursehint {
+    font-size: 0.88em;
+    color: #777;
+    margin-bottom: 8px;
+    font-style: italic;
+}
+
 .local-astusse-bilan-list li:last-child {
     border-bottom: none;
 }

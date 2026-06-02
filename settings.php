@@ -149,4 +149,12 @@ if ($hassiteconfig) {
         '1',
         PARAM_INT
     ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_astusse/review_max_resources_per_quiz',
+        get_string('review_max_resources_per_quiz', 'local_astusse'),
+        get_string('review_max_resources_per_quiz_desc', 'local_astusse'),
+        '3',
+        PARAM_INT
+    ));
 }

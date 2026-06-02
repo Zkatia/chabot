@@ -489,12 +489,23 @@
             body.appendChild(el('p', 'local-astusse-bilan-perres-label', s('bilanPerresourceLabel')));
             var ul = el('ul', 'local-astusse-bilan-list');
             bilan.perResource.forEach(function(pr) {
-                ul.appendChild(el('li', null, fmt(s('bilanPerresourceLineTpl'), {
-                    name: pr.resourceName || ('Resource #' + pr.resourceCmid),
-                    course: pr.courseName || '',
-                    correct: pr.correctCount,
-                    total: pr.totalCount,
-                })));
+                // Construction DOM directe pour pouvoir inserer un <a> dans le nom du cours,
+                // sans risque d'injection (textContent sur chaque morceau).
+                var li = document.createElement('li');
+                var resourceName = pr.resourceName || ('Resource #' + pr.resourceCmid);
+                var courseName = pr.courseName || '';
+
+                li.appendChild(document.createTextNode(resourceName + ' ('));
+                if (courseName && pr.courseUrl) {
+                    var courseLink = document.createElement('a');
+                    courseLink.href = pr.courseUrl;
+                    courseLink.textContent = courseName;
+                    li.appendChild(courseLink);
+                } else {
+                    li.appendChild(document.createTextNode(courseName));
+                }
+                li.appendChild(document.createTextNode(') - ' + pr.correctCount + '/' + pr.totalCount));
+                ul.appendChild(li);
             });
             body.appendChild(ul);
         }

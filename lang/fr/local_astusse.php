@@ -370,6 +370,9 @@ $string['review_recency_days_desc'] = 'Une ressource consultée dans les N derni
 $string['review_min_eligible'] = 'Nombre minimum de ressources';
 $string['review_min_eligible_desc'] = 'Nombre minimum de ressources éligibles pour déclencher le pop-up. Défaut : 1.';
 
+$string['review_max_resources_per_quiz'] = 'Nombre maximum de ressources par quiz';
+$string['review_max_resources_per_quiz_desc'] = 'Nombre maximum de ressources couvertes par un quiz (5 questions réparties). Au-delà, seules les plus récentes sont retenues. Défaut : 3.';
+
 // T2 — Pop-up de proposition (Etat 1).
 $string['popup:title'] = '💡 Révision suggérée';
 $string['popup:greeting'] = 'Bonjour {$a->name},';

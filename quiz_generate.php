@@ -61,6 +61,21 @@ try {
 $status = (int)($result['status'] ?? 0);
 $body = is_array($result['body_json'] ?? null) ? $result['body_json'] : null;
 
+// Enrichit chaque question avec le nom du module et du cours pour affichage cote JS
+// (sous-titre de l'etat 2 "Cours : <X>"). Une seule resolution batch des cmids.
+if ($status === 200 && is_array($body) && !empty($body['questions'])) {
+    $cmids = array_map(function ($q) { return (int)($q['resourceCmid'] ?? 0); }, $body['questions']);
+    $titles = local_astusse_resolve_cmid_titles($cmids);
+    foreach ($body['questions'] as &$q) {
+        $cmid = (int)($q['resourceCmid'] ?? 0);
+        if (isset($titles[$cmid])) {
+            $q['resourceName'] = $titles[$cmid]['name'];
+            $q['courseName']   = $titles[$cmid]['course'];
+        }
+    }
+    unset($q);
+}
+
 // Propage le statut HTTP pour que le JS distingue 404 vs 200 GENERATING etc.
 http_response_code(in_array($status, [200, 400, 404, 410], true) ? $status : 502);
 echo json_encode($body ?? ['error' => 'invalid_upstream_response']);

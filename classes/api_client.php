@@ -431,6 +431,7 @@ class api_client {
         \stdClass $user,
         int $recencydays,
         int $mineligible,
+        int $maxresources = 3,
         int $timeoutseconds = 2
     ): array {
         $token = \local_astusse_generate_user_token($user);
@@ -440,7 +441,8 @@ class api_client {
 
         $path = '/api/review/get_pending_review'
             . '?recencyDays=' . rawurlencode((string)$recencydays)
-            . '&minEligible=' . rawurlencode((string)$mineligible);
+            . '&minEligible=' . rawurlencode((string)$mineligible)
+            . '&maxResources=' . rawurlencode((string)$maxresources);
 
         return $this->request_json('GET', $path, $token, null, $timeoutseconds);
     }

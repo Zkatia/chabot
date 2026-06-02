@@ -2554,19 +2554,13 @@ function local_astusse_before_footer(): string {
 
     // The loader reads M.cfg.wwwroot + M.cfg.sesskey itself, so no extra config
     // is passed here (avoids a JS init race). Loaded in the footer = DOM ready.
-    // T3 etape 6 : expose les strings du quiz pour M.util.get_string().
-    $PAGE->requires->strings_for_js([
-        'quiz:loading', 'quiz:waiting_generation', 'quiz:question_progress',
-        'quiz:libre_placeholder', 'quiz:validate', 'quiz:next', 'quiz:see_result',
-        'quiz:feedback_correct', 'quiz:feedback_incorrect', 'quiz:feedback_pending',
-        'quiz:correct_answer_qcm', 'quiz:correct_answer_libre',
-        'quiz:error_load', 'quiz:error_send', 'quiz:error_generating_timeout',
-        'quiz:error_expired', 'quiz:error_failed',
-        'bilan:title', 'bilan:score', 'bilan:consolidation', 'bilan:partial', 'bilan:weak',
-        'bilan:see_resource', 'bilan:ask_tutor', 'bilan:finish',
-        'bilan:perresource_label', 'bilan:perresource_line',
-    ], 'local_astusse');
-    $PAGE->requires->js(new moodle_url('/local/astusse/js/spaced_repetition_popup.js'));
+    // T3 etape 6 fix : les strings du quiz/bilan sont inlinees dans la reponse
+    // de popup_check.php (champ "strings"), pas via M.str -- evite les cache issues
+    // entre jsrev Moodle et cache navigateur sur le bundle strings JS.
+    // Cache buster brutal : renommer le fichier (spaced_repetition_popup_v2.js)
+    // garantit qu'aucun cache navigateur ne peut servir une ancienne version. A
+    // chaque refonte structurelle, on bump _vN.
+    $PAGE->requires->js(new moodle_url('/local/astusse/js/spaced_repetition_popup_v3.js'));
 
     return '';
 }
@@ -2620,25 +2614,27 @@ function local_astusse_build_quiz_tutor_draft(\stdClass $user, string $quizsessi
         }
     }
     $focus = array_merge($failed, $pending);
+    // FR hardcode (cf. [[project-t3-strings-hardcoded]]) -- get_string ne charge pas
+    // les nouvelles cles sur cette install Moodle, bug a investiguer separement.
     if (empty($focus)) {
-        return get_string('tutor:draft_intro_allcorrect', 'local_astusse');
+        return 'Je viens de faire un quiz de révision. '
+            . 'Peux-tu me proposer un approfondissement sur les points clés ?';
     }
 
-    $lines = [get_string('tutor:draft_intro', 'local_astusse'), ''];
+    $lines = ['Aide-moi à comprendre ces points sur lesquels j\'ai eu du mal lors de mon quiz :', ''];
     $i = 1;
     foreach ($focus as $e) {
         $prompt = trim((string)($e['prompt'] ?? ''));
         $useranswer = trim((string)($e['userAnswer'] ?? ''));
         $verdict = isset($e['correct']) && $e['correct'] === false
-            ? get_string('tutor:draft_verdict_incorrect', 'local_astusse')
-            : get_string('tutor:draft_verdict_pending', 'local_astusse');
+            ? '(Réponse incorrecte)'
+            : '(Réponse à évaluer)';
         if ($prompt === '') {
             continue;
         }
         $lines[] = $i . '. ' . $prompt;
         if ($useranswer !== '') {
-            $lines[] = '   ' . get_string('tutor:draft_my_answer', 'local_astusse',
-                (object)['answer' => $useranswer]);
+            $lines[] = '   Ma réponse : ' . $useranswer;
         }
         $lines[] = '   ' . $verdict;
         $lines[] = '';
@@ -2681,16 +2677,18 @@ function local_astusse_resolve_cmid_titles(array $cmids): array {
         $instance = $DB->get_record($modname, ['id' => $r->instance], 'id, name');
         $name = $instance && isset($instance->name) ? (string)$instance->name : ('Resource #' . $r->cmid);
         $url = (new moodle_url('/mod/' . $modname . '/view.php', ['id' => $r->cmid]))->out(false);
+        $courseurl = (new moodle_url('/course/view.php', ['id' => (int)$r->course]))->out(false);
         $out[(int)$r->cmid] = [
-            'name'   => $name,
-            'course' => (string)$r->coursename,
-            'url'    => $url,
+            'name'      => $name,
+            'course'    => (string)$r->coursename,
+            'url'       => $url,
+            'courseUrl' => $courseurl,
         ];
     }
     // Fallback pour les cmids non resolus (module supprime ?).
     foreach ($cmids as $cmid) {
         if (!isset($out[$cmid])) {
-            $out[$cmid] = ['name' => 'Resource #' . $cmid, 'course' => '', 'url' => ''];
+            $out[$cmid] = ['name' => 'Resource #' . $cmid, 'course' => '', 'url' => '', 'courseUrl' => ''];
         }
     }
     return $out;
