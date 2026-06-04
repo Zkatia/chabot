@@ -13,11 +13,13 @@
 // with Moodle. If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * T2 + T3 etape 6 : machine d'etat pop-up de revision espacee.
+ * T2 + T3 : machine d'etat pop-up de revision espacee.
  *
  * Plain JS (pas d'AMD) pour eviter la dependance grunt build, conformement a
- * la decision T2 figee en memoire. Toutes les strings UI passent par
- * M.util.get_string() (preregistrees via $PAGE->requires->strings_for_js).
+ * la decision T2 figee en memoire. Les strings UI sont inlinees dans le payload
+ * JSON de popup_check.php (champ "strings") -- pas de dependance a M.str / cache
+ * navigateur. Le helper s(key) lit st.initialData.strings, fmt(tpl, params)
+ * interpole les templates {placeholder}.
  *
  * Etats :
  *   1 = Proposition       (T2)  : pop-up "veux-tu reviser ?"
@@ -264,11 +266,14 @@
         var q = st.questions[st.currentIndex];
         var total = st.questions.length;
 
-        card.appendChild(renderHeader(st.initialData.title, true));
+        // Maquette etat 2 : titre = "Question N/M", sous-titre = "Cours : <nom>"
+        var progressTitle = fmt(s('questionProgressTpl'), { current: st.currentIndex + 1, total: total });
+        card.appendChild(renderHeader(progressTitle, true));
 
         var body = el('div', 'local-astusse-popup-body');
-        body.appendChild(el('div', 'local-astusse-quiz-progress',
-            fmt(s('questionProgressTpl'), { current: st.currentIndex + 1, total: total })));
+        if (q.courseName) {
+            body.appendChild(el('div', 'local-astusse-quiz-coursehint', 'Cours : ' + q.courseName));
+        }
         body.appendChild(el('p', 'local-astusse-quiz-prompt', q.prompt));
 
         var form = el('div', 'local-astusse-quiz-form');
@@ -381,34 +386,38 @@
         rebuildCard();
         overlay.dataset.allowOutsideClose = '0';
 
-        card.appendChild(renderHeader(st.initialData.title, true));
+        // Maquette etat 3 : conserve "Question N/M" en header (continuite avec etat 2).
+        var total = st.questions.length;
+        var progressTitle = fmt(s('questionProgressTpl'), { current: st.currentIndex + 1, total: total });
+        card.appendChild(renderHeader(progressTitle, true));
 
         var body = el('div', 'local-astusse-popup-body');
 
         var isPending = !!verdict.pending;
         var isCorrect = verdict.correct === true;
-        var verdictClass = isPending
-            ? 'local-astusse-quiz-verdict pending'
-            : (isCorrect ? 'local-astusse-quiz-verdict correct' : 'local-astusse-quiz-verdict incorrect');
-        var verdictLabel = isPending
-            ? s('feedbackPending')
-            : (isCorrect ? s('feedbackCorrect') : s('feedbackIncorrect'));
-        body.appendChild(el('div', verdictClass, verdictLabel));
 
-        // Affichage de la bonne reponse (revelee post-validation).
+        // Format maquette : "✗ Réponse attendue : « ... »" ou "✓ Réponse attendue : « ... »".
+        // Le verdict (correct/incorrect) est porte par l'icone, pas un bandeau.
         if (!isPending) {
+            var icon = isCorrect ? '✓ ' : '✗ ';
+            var iconClass = isCorrect ? 'local-astusse-quiz-verdict correct' : 'local-astusse-quiz-verdict incorrect';
+            var correctText = '';
             if (question.type === 'qcm' && verdict.correctIndex !== null && verdict.correctIndex !== undefined) {
                 var correctChoice = Array.isArray(question.choices) ? question.choices[verdict.correctIndex] : '';
-                body.appendChild(el('p', 'local-astusse-quiz-correct',
-                    fmt(s('correctAnswerQcmTpl'), { answer: correctChoice })));
+                correctText = 'Réponse attendue : « ' + correctChoice + ' »';
             } else if (question.type === 'libre' && verdict.correctAnswer) {
-                body.appendChild(el('p', 'local-astusse-quiz-correct',
-                    fmt(s('correctAnswerLibreTpl'), { answer: verdict.correctAnswer })));
+                correctText = 'Réponse attendue : « ' + verdict.correctAnswer + ' »';
             }
+            body.appendChild(el('p', iconClass, icon + correctText));
+        } else {
+            body.appendChild(el('p', 'local-astusse-quiz-verdict pending', s('feedbackPending')));
         }
 
         if (verdict.explanation) {
-            body.appendChild(el('p', 'local-astusse-quiz-explanation', verdict.explanation));
+            var explWrap = el('p', 'local-astusse-quiz-explanation');
+            explWrap.appendChild(el('strong', null, 'Explication : '));
+            explWrap.appendChild(document.createTextNode(verdict.explanation));
+            body.appendChild(explWrap);
         }
 
         card.appendChild(body);
@@ -468,56 +477,99 @@
         rebuildCard();
         overlay.dataset.allowOutsideClose = '1';
 
+        // Maquette : "Bilan de la session" (variante du libelle, on garde bilanTitle).
         card.appendChild(renderHeader(s('bilanTitle'), true));
 
         var body = el('div', 'local-astusse-popup-body');
+
+        // Score : X/Y
         body.appendChild(el('div', 'local-astusse-bilan-score',
-            fmt(s('bilanScoreTpl'), { correct: bilan.correctCount, total: bilan.totalCount })));
+            'Score : ' + bilan.correctCount + '/' + bilan.totalCount));
 
-        var reco = bilan.recommendation;
-        var recoText = '';
-        if (reco === 'CONSOLIDATION') {
-            recoText = fmt(s('bilanConsolidationTpl'), { days: bilan.nextReviewDays });
-        } else if (reco === 'PARTIAL') {
-            recoText = s('bilanPartial');
-        } else {
-            recoText = s('bilanWeak');
-        }
-        body.appendChild(el('p', 'local-astusse-bilan-reco', recoText));
-
+        // Par concept : <icone> <nom> (<cours>) - maitrise/fragile
         if (Array.isArray(bilan.perResource) && bilan.perResource.length > 0) {
-            body.appendChild(el('p', 'local-astusse-bilan-perres-label', s('bilanPerresourceLabel')));
+            body.appendChild(el('p', 'local-astusse-bilan-perres-label', 'Par concept :'));
             var ul = el('ul', 'local-astusse-bilan-list');
             bilan.perResource.forEach(function(pr) {
-                ul.appendChild(el('li', null, fmt(s('bilanPerresourceLineTpl'), {
-                    name: pr.resourceName || ('Resource #' + pr.resourceCmid),
-                    course: pr.courseName || '',
-                    correct: pr.correctCount,
-                    total: pr.totalCount,
-                })));
+                var li = document.createElement('li');
+                var resourceName = pr.resourceName || ('Resource #' + pr.resourceCmid);
+                var courseName = pr.courseName || '';
+                var isMastered = pr.allCorrect === true;
+                var icon = isMastered ? '✓ ' : '⚠ ';
+                var label = isMastered ? ' - maîtrisé' : ' - fragile';
+
+                li.className = isMastered ? 'mastered' : 'fragile';
+                li.appendChild(document.createTextNode(icon + resourceName));
+                if (courseName) {
+                    li.appendChild(document.createTextNode(' ('));
+                    if (pr.courseUrl) {
+                        var courseLink = document.createElement('a');
+                        courseLink.href = pr.courseUrl;
+                        courseLink.target = '_blank';
+                        courseLink.rel = 'noopener noreferrer';
+                        courseLink.textContent = courseName;
+                        li.appendChild(courseLink);
+                    } else {
+                        li.appendChild(document.createTextNode(courseName));
+                    }
+                    li.appendChild(document.createTextNode(')'));
+                }
+                li.appendChild(document.createTextNode(label));
+                ul.appendChild(li);
             });
             body.appendChild(ul);
         }
+
+        // Recommandation contextuelle
+        var reco = bilan.recommendation;
+        var recoText = '';
+        if (reco === 'CONSOLIDATION') {
+            recoText = 'Mémoire consolidée sur l\'ensemble des concepts.';
+        } else if (reco === 'PARTIAL') {
+            recoText = bilan.fragileResourceName
+                ? 'Point fragile sur « ' + bilan.fragileResourceName + ' » — revoir la ressource.'
+                : 'Une ressource gagnerait à être révisée.';
+        } else {
+            recoText = 'Plusieurs points clés à retravailler. Le tuteur IA peut t\'aider.';
+        }
+        var recoBlock = el('div', 'local-astusse-bilan-reco-block');
+        recoBlock.appendChild(el('p', 'local-astusse-bilan-reco-label', 'Recommandation :'));
+        recoBlock.appendChild(el('p', 'local-astusse-bilan-reco', recoText));
+        body.appendChild(recoBlock);
+
+        // Prochaine révision : date formatee FR
+        if (bilan.nextReviewAt) {
+            var dt = new Date(bilan.nextReviewAt);
+            var dateStr = dt.toLocaleDateString('fr-FR',
+                { day: 'numeric', month: 'long', year: 'numeric' });
+            body.appendChild(el('p', 'local-astusse-bilan-nextreview',
+                'Prochaine révision : ' + dateStr));
+        }
+
         card.appendChild(body);
 
+        // Footer : 1-2 boutons d'action + Terminer
         var footer = el('div', 'local-astusse-popup-footer');
-        if (reco === 'PARTIAL' && bilan.fragileViewUrl) {
+        if (bilan.fragileViewUrl) {
             var view = document.createElement('a');
             view.className = 'btn btn-primary';
             view.href = bilan.fragileViewUrl;
+            view.target = '_blank';
+            view.rel = 'noopener noreferrer';
             view.textContent = s('bilanSeeResource');
             footer.appendChild(view);
-        } else if (reco === 'WEAK') {
+        }
+        // "Demander au tuteur" toujours dispo des qu'il y a au moins une fragile.
+        if (reco !== 'CONSOLIDATION') {
             var tutor = document.createElement('a');
-            tutor.className = 'btn btn-primary';
-            // T3 etape 7 cablera le contexte preload sur le chat. En T3 etape 6, lien generique.
+            tutor.className = 'btn btn-secondary';
             var c2 = cfg();
             tutor.href = (c2 ? c2.wwwroot : '') + '/local/astusse/chat.php?quizSessionId='
                 + encodeURIComponent(st.initialData.quizSessionId);
             tutor.textContent = s('bilanAskTutor');
             footer.appendChild(tutor);
         }
-        var finish = el('button', 'btn btn-secondary', s('bilanFinish'));
+        var finish = el('button', 'btn btn-link', s('bilanFinish'));
         finish.setAttribute('type', 'button');
         finish.addEventListener('click', close);
         footer.appendChild(finish);

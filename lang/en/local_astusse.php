@@ -370,6 +370,9 @@ $string['review_recency_days_desc'] = 'A resource consulted within the last N da
 $string['review_min_eligible'] = 'Minimum number of resources';
 $string['review_min_eligible_desc'] = 'Minimum number of eligible resources to trigger the pop-up. Default: 1.';
 
+$string['review_max_resources_per_quiz'] = 'Maximum resources per quiz';
+$string['review_max_resources_per_quiz_desc'] = 'Maximum number of resources covered by one quiz (5 questions spread across them). Above the cap, only the most recently consulted are kept. Server clamps to [2, 5]. Default: 3.';
+
 // T2 — Proposal pop-up (State 1).
 $string['popup:title'] = '💡 Suggested review';
 $string['popup:greeting'] = 'Hello {$a->name},';
@@ -380,3 +383,41 @@ $string['popup:pitch'] = 'An interleaved quiz (5 questions, ~3 min) would streng
 $string['popup:launch'] = 'Start';
 $string['popup:later'] = 'Later';
 $string['popup:close'] = 'Cancel';
+
+// T3 — Quiz (States 2, 3, 4).
+$string['quiz:loading'] = 'Preparing questions…';
+$string['quiz:waiting_generation'] = 'Generating, a few more seconds…';
+$string['quiz:question_progress'] = 'Question {$a->current} of {$a->total}';
+$string['quiz:libre_placeholder'] = 'Write your answer…';
+$string['quiz:validate'] = 'Submit answer';
+$string['quiz:next'] = 'Next question';
+$string['quiz:see_result'] = 'See the summary';
+$string['quiz:feedback_correct'] = 'Correct';
+$string['quiz:feedback_incorrect'] = 'Incorrect';
+$string['quiz:feedback_pending'] = 'Answer saved, evaluation deferred to the final summary.';
+$string['quiz:correct_answer_qcm'] = 'Correct answer: {$a}';
+$string['quiz:correct_answer_libre'] = 'Expected answer: {$a}';
+$string['quiz:error_load'] = 'Unable to load the quiz right now. Please try again later.';
+$string['quiz:error_send'] = 'Submission error. Check your connection and retry.';
+$string['quiz:error_generating_timeout'] = 'Generation is taking longer than expected. Please retry shortly.';
+$string['quiz:error_expired'] = 'This review session has expired. Come back tomorrow.';
+$string['quiz:error_failed'] = 'Generation failed on the server side. Please retry later.';
+
+// T3 — Final summary (State 4).
+$string['bilan:title'] = 'Session summary';
+$string['bilan:score'] = '{$a->correct} out of {$a->total} correct answers';
+$string['bilan:consolidation'] = '✅ Memory consolidated. Next review in {$a} days.';
+$string['bilan:partial'] = 'You have grasped the essentials. One resource would benefit from a review.';
+$string['bilan:weak'] = 'Several key points need rework. The AI tutor can help.';
+$string['bilan:see_resource'] = 'View the resource';
+$string['bilan:ask_tutor'] = 'Ask the tutor';
+$string['bilan:finish'] = 'Finish';
+$string['bilan:perresource_label'] = 'Per resource:';
+$string['bilan:perresource_line'] = '{$a->name} ({$a->course}) — {$a->correct}/{$a->total}';
+
+// T3 — "Ask the tutor" pre-filled draft.
+$string['tutor:draft_intro'] = 'Help me understand these points I struggled with during my quiz:';
+$string['tutor:draft_intro_allcorrect'] = 'I just completed a review quiz. Could you suggest deeper material on the key concepts?';
+$string['tutor:draft_my_answer'] = 'My answer: {$a->answer}';
+$string['tutor:draft_verdict_incorrect'] = '(Incorrect answer)';
+$string['tutor:draft_verdict_pending'] = '(Answer pending evaluation)';

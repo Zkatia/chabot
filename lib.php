@@ -2557,10 +2557,14 @@ function local_astusse_before_footer(): string {
     // T3 etape 6 fix : les strings du quiz/bilan sont inlinees dans la reponse
     // de popup_check.php (champ "strings"), pas via M.str -- evite les cache issues
     // entre jsrev Moodle et cache navigateur sur le bundle strings JS.
-    // Cache buster brutal : renommer le fichier (spaced_repetition_popup_v2.js)
-    // garantit qu'aucun cache navigateur ne peut servir une ancienne version. A
-    // chaque refonte structurelle, on bump _vN.
-    $PAGE->requires->js(new moodle_url('/local/astusse/js/spaced_repetition_popup_v3.js'));
+    // Cache buster via ?v=<version> : force le navigateur a re-fetcher a chaque
+    // bump de version.php. Les strings du quiz sont inlinees dans la reponse de
+    // popup_check.php (champ "strings"), donc aucune dependance a M.str / cache
+    // navigateur sur le bundle strings JS.
+    $pluginversion = (string)get_config('local_astusse', 'version');
+    $PAGE->requires->js(
+        new moodle_url('/local/astusse/js/spaced_repetition_popup.js', ['v' => $pluginversion])
+    );
 
     return '';
 }
@@ -2614,27 +2618,25 @@ function local_astusse_build_quiz_tutor_draft(\stdClass $user, string $quizsessi
         }
     }
     $focus = array_merge($failed, $pending);
-    // FR hardcode (cf. [[project-t3-strings-hardcoded]]) -- get_string ne charge pas
-    // les nouvelles cles sur cette install Moodle, bug a investiguer separement.
     if (empty($focus)) {
-        return 'Je viens de faire un quiz de révision. '
-            . 'Peux-tu me proposer un approfondissement sur les points clés ?';
+        return get_string('tutor:draft_intro_allcorrect', 'local_astusse');
     }
 
-    $lines = ['Aide-moi à comprendre ces points sur lesquels j\'ai eu du mal lors de mon quiz :', ''];
+    $lines = [get_string('tutor:draft_intro', 'local_astusse'), ''];
     $i = 1;
     foreach ($focus as $e) {
         $prompt = trim((string)($e['prompt'] ?? ''));
         $useranswer = trim((string)($e['userAnswer'] ?? ''));
         $verdict = isset($e['correct']) && $e['correct'] === false
-            ? '(Réponse incorrecte)'
-            : '(Réponse à évaluer)';
+            ? get_string('tutor:draft_verdict_incorrect', 'local_astusse')
+            : get_string('tutor:draft_verdict_pending', 'local_astusse');
         if ($prompt === '') {
             continue;
         }
         $lines[] = $i . '. ' . $prompt;
         if ($useranswer !== '') {
-            $lines[] = '   Ma réponse : ' . $useranswer;
+            $lines[] = '   ' . get_string('tutor:draft_my_answer', 'local_astusse',
+                (object)['answer' => $useranswer]);
         }
         $lines[] = '   ' . $verdict;
         $lines[] = '';

@@ -88,65 +88,72 @@ if ($status !== 200 || $body === null || empty($body['hasPending'])) {
 }
 
 // Compose the (localised) texts server-side from the counters.
-// T3 etape 6 fix definitif : i18n est FR-only v1 (decision #11) et le cache
-// strings Moodle pose probleme dans cet environnement -- on hardcode les
-// libelles ici, plus aucune dependance a get_string/lang/cache.
-$displayname = fullname($USER);
-$consulted   = (int)($body['consultedCount'] ?? 0);
-$courses     = (int)($body['courseCount'] ?? 0);
-$reviewable  = (int)($body['reviewableCount'] ?? 0);
-$fragile     = (int)($body['fragileCount'] ?? 0);
+$a = (object)[
+    'name'       => fullname($USER),
+    'consulted'  => (int)($body['consultedCount'] ?? 0),
+    'courses'    => (int)($body['courseCount'] ?? 0),
+    'reviewable' => (int)($body['reviewableCount'] ?? 0),
+    'fragile'    => (int)($body['fragileCount'] ?? 0),
+];
 
-$consultedline = "Tu as consulté {$consulted} ressources sur {$courses} cours ces derniers jours.";
-$reviewline = $fragile > 0
-    ? "⚠ {$fragile} notions sont en dessous de 90 % de rétention prédite."
-    : "{$reviewable} ressources gagneraient à être consolidées.";
+$reviewline = $a->fragile > 0
+    ? get_string('popup:fragile', 'local_astusse', $a)
+    : get_string('popup:toconsolidate', 'local_astusse', $a);
 
 // T3 : si la pre-generation a ete declenchee cote API, on propage l'ID au front.
 $quizsessionid = isset($body['quizSessionId']) ? (string)$body['quizSessionId'] : null;
 
-// Dict de strings FR pour le quiz (Etats 2, 3, 4). Hardcode.
-// Templates : {placeholder} interpole cote JS via le helper fmt(tpl, params).
+// Dict de strings inlinees pour le quiz (Etats 2, 3, 4). Le JS consomme via s(key)
+// et fmt(tpl, params) ; cela evite la dependance a M.str / cache navigateur sur le
+// bundle strings JS, et garde un seul aller-retour HTTP au login.
+//
+// Templates : on passe un placeholder {key} comme valeur a get_string, Moodle
+// remplace les $a->key par {key} et on conserve la traduction.
 $quizstrings = [
-    'loading'                 => 'Préparation des questions…',
-    'waitingGeneration'       => 'Génération en cours, encore quelques secondes…',
-    'librePlaceholder'        => 'Écris ta réponse…',
-    'validate'                => 'Valider la réponse',
-    'next'                    => 'Question suivante',
-    'seeResult'               => 'Voir le bilan',
-    'feedbackCorrect'         => 'Bonne réponse',
-    'feedbackIncorrect'       => 'Réponse incorrecte',
-    'feedbackPending'         => 'Réponse enregistrée, évaluation reportée au bilan.',
-    'errorLoad'               => 'Impossible de charger le quiz pour le moment. Réessaie plus tard.',
-    'errorSend'               => 'Erreur d\'envoi. Vérifie ta connexion et réessaie.',
-    'errorGeneratingTimeout'  => 'La génération prend plus de temps que prévu. Réessaie dans un instant.',
-    'errorExpired'            => 'Cette session de révision a expiré. Reviens demain.',
-    'errorFailed'             => 'La génération a échoué côté serveur. Reviens un peu plus tard.',
-    'bilanTitle'              => 'Bilan de la session',
-    'bilanPartial'            => 'Tu maîtrises l\'essentiel. Une ressource gagnerait à être révisée.',
-    'bilanWeak'               => 'Quelques points clés à retravailler. Le tuteur IA peut t\'aider.',
-    'bilanSeeResource'        => 'Voir la ressource',
-    'bilanAskTutor'           => 'Demander au tuteur',
-    'bilanFinish'             => 'Terminer',
-    'bilanPerresourceLabel'   => 'Détail par ressource :',
-    'questionProgressTpl'     => 'Question {current} sur {total}',
-    'correctAnswerQcmTpl'     => 'Bonne réponse : {answer}',
-    'correctAnswerLibreTpl'   => 'Réponse attendue : {answer}',
-    'bilanScoreTpl'           => '{correct} sur {total} bonnes réponses',
-    'bilanConsolidationTpl'   => '✅ Mémoire consolidée. Prochaine révision dans {days} jours.',
-    'bilanPerresourceLineTpl' => '{name} ({course}) — {correct}/{total}',
+    'loading'                 => get_string('quiz:loading', 'local_astusse'),
+    'waitingGeneration'       => get_string('quiz:waiting_generation', 'local_astusse'),
+    'librePlaceholder'        => get_string('quiz:libre_placeholder', 'local_astusse'),
+    'validate'                => get_string('quiz:validate', 'local_astusse'),
+    'next'                    => get_string('quiz:next', 'local_astusse'),
+    'seeResult'               => get_string('quiz:see_result', 'local_astusse'),
+    'feedbackCorrect'         => get_string('quiz:feedback_correct', 'local_astusse'),
+    'feedbackIncorrect'       => get_string('quiz:feedback_incorrect', 'local_astusse'),
+    'feedbackPending'         => get_string('quiz:feedback_pending', 'local_astusse'),
+    'errorLoad'               => get_string('quiz:error_load', 'local_astusse'),
+    'errorSend'               => get_string('quiz:error_send', 'local_astusse'),
+    'errorGeneratingTimeout'  => get_string('quiz:error_generating_timeout', 'local_astusse'),
+    'errorExpired'            => get_string('quiz:error_expired', 'local_astusse'),
+    'errorFailed'             => get_string('quiz:error_failed', 'local_astusse'),
+    'bilanTitle'              => get_string('bilan:title', 'local_astusse'),
+    'bilanPartial'            => get_string('bilan:partial', 'local_astusse'),
+    'bilanWeak'               => get_string('bilan:weak', 'local_astusse'),
+    'bilanSeeResource'        => get_string('bilan:see_resource', 'local_astusse'),
+    'bilanAskTutor'           => get_string('bilan:ask_tutor', 'local_astusse'),
+    'bilanFinish'             => get_string('bilan:finish', 'local_astusse'),
+    'bilanPerresourceLabel'   => get_string('bilan:perresource_label', 'local_astusse'),
+
+    'questionProgressTpl'     => get_string('quiz:question_progress', 'local_astusse',
+        (object)['current' => '{current}', 'total' => '{total}']),
+    'correctAnswerQcmTpl'     => get_string('quiz:correct_answer_qcm', 'local_astusse', '{answer}'),
+    'correctAnswerLibreTpl'   => get_string('quiz:correct_answer_libre', 'local_astusse', '{answer}'),
+    'bilanScoreTpl'           => get_string('bilan:score', 'local_astusse',
+        (object)['correct' => '{correct}', 'total' => '{total}']),
+    'bilanConsolidationTpl'   => get_string('bilan:consolidation', 'local_astusse', '{days}'),
+    'bilanPerresourceLineTpl' => get_string('bilan:perresource_line', 'local_astusse',
+        (object)['name' => '{name}', 'course' => '{course}',
+                 'correct' => '{correct}', 'total' => '{total}']),
 ];
 
 echo json_encode([
     'hasPending'    => true,
-    'title'         => '💡 Révision suggérée',
-    'greeting'      => "Bonjour {$displayname},",
-    'consultedLine' => $consultedline,
+    'title'         => get_string('popup:title', 'local_astusse'),
+    'greeting'      => get_string('popup:greeting', 'local_astusse', $a),
+    'consultedLine' => get_string('popup:consulted', 'local_astusse', $a),
     'reviewLine'    => $reviewline,
-    'pitch'         => 'Un quiz interleavé (5 questions, ~3 min) consoliderait ta mémoire.',
-    'btnLaunch'     => 'Lancer',
-    'btnLater'      => 'Plus tard',
-    'btnClose'      => 'Annuler',
+    'pitch'         => get_string('popup:pitch', 'local_astusse'),
+    'btnLaunch'     => get_string('popup:launch', 'local_astusse'),
+    'btnLater'      => get_string('popup:later', 'local_astusse'),
+    'btnClose'      => get_string('popup:close', 'local_astusse'),
     'quizSessionId' => $quizsessionid,
     'strings'       => $quizstrings,
 ]);
