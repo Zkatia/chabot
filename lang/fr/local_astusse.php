@@ -404,7 +404,7 @@ $string['quiz:error_expired'] = 'Cette session de révision a expiré. Reviens d
 $string['quiz:error_failed'] = 'La génération a échoué côté serveur. Reviens un peu plus tard.';
 
 // T3 — Bilan final (Etat 4).
-$string['bilan:title'] = 'Bilan de ta révision';
+$string['bilan:title'] = 'Bilan de la session';
 $string['bilan:score'] = '{$a->correct} sur {$a->total} bonnes réponses';
 $string['bilan:consolidation'] = '✅ Mémoire consolidée. Prochaine révision dans {$a} jours.';
 $string['bilan:partial'] = 'Tu maîtrises l\'essentiel. Une ressource gagnerait à être révisée.';

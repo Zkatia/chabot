@@ -34,9 +34,9 @@
     'use strict';
 
     var TIMEOUT_INITIAL_MS = 2000;       // check pending (T2)
-    var TIMEOUT_QUIZ_MS = 12000;          // fetch quiz + record answer (LLM-juge possible)
+    var TIMEOUT_QUIZ_MS = 15000;          // fetch quiz + record answer (LLM-juge possible)
     var POLL_INTERVAL_MS = 2000;          // re-poll GENERATING -> READY
-    var POLL_MAX_ATTEMPTS = 10;           // ~20s total avant abandon
+    var POLL_MAX_ATTEMPTS = 45;           // ~90s total avant abandon (T4 : prompt avec narrative + 3 attempts anti-doublon)
 
     /** Container racine, recree a chaque ouverture. */
     var overlay = null;
