@@ -610,6 +610,101 @@ class api_client {
         return $this->request_json('GET', '/api/admin/scope/policy', $token, null);
     }
 
+    // ============================================================
+    // T5 — Controle apprenant (snooze, opt-out, cancel/reactivate)
+    // ============================================================
+
+    /**
+     * Snooze pop-ups for the default duration (4h server-side).
+     *
+     * @param \stdClass $user
+     * @return array
+     */
+    public function snooze_for_user(\stdClass $user, int $timeoutseconds = 5): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        return $this->request_json('POST', '/api/review/snooze', $token, [], $timeoutseconds);
+    }
+
+    /**
+     * Cancel the given resources (cmids). They won't reappear in pop-ups but
+     * future consultations remain tracked.
+     *
+     * @param \stdClass $user
+     * @param int[]     $cmids
+     * @return array
+     */
+    public function cancel_resources_for_user(\stdClass $user, array $cmids, int $timeoutseconds = 5): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        $payload = ['cmids' => array_values(array_map('intval', $cmids))];
+        return $this->request_json('POST', '/api/review/cancel_resources', $token, $payload, $timeoutseconds);
+    }
+
+    /**
+     * Enable/disable review pop-ups globally for the learner.
+     *
+     * @param \stdClass $user
+     * @param bool      $enabled
+     * @return array
+     */
+    public function set_global_state_for_user(\stdClass $user, bool $enabled, int $timeoutseconds = 5): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        return $this->request_json('POST', '/api/review/set_global_state', $token,
+            ['enabled' => $enabled], $timeoutseconds);
+    }
+
+    /**
+     * Reactivate a single cancelled or mastered resource.
+     *
+     * @param \stdClass $user
+     * @param int       $cmid
+     * @return array
+     */
+    public function reactivate_resource_for_user(\stdClass $user, int $cmid, int $timeoutseconds = 5): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        return $this->request_json('POST', '/api/review/reactivate_resource', $token,
+            ['cmid' => $cmid], $timeoutseconds);
+    }
+
+    /**
+     * List current per-resource overrides (mastered + cancelled) for this user.
+     *
+     * @param \stdClass $user
+     * @return array
+     */
+    public function list_overrides_for_user(\stdClass $user, int $timeoutseconds = 5): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        return $this->request_json('GET', '/api/review/overrides', $token, null, $timeoutseconds);
+    }
+
+    /**
+     * Get the learner's current preferences (disabled, snoozed_until).
+     *
+     * @param \stdClass $user
+     * @return array
+     */
+    public function get_preferences_for_user(\stdClass $user, int $timeoutseconds = 5): array {
+        $token = \local_astusse_generate_user_token($user);
+        if ($token === false) {
+            throw new \Exception('Unable to generate JWT token for current user.');
+        }
+        return $this->request_json('GET', '/api/review/preferences', $token, null, $timeoutseconds);
+    }
+
     /**
      * Return API error message if available.
      *

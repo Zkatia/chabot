@@ -151,9 +151,24 @@
         footer.appendChild(closeBtn);
         card.appendChild(footer);
 
-        // T5 cablera "Plus tard" (snooze 4h). En T3 c'est un close simple.
-        later.addEventListener('click', close);
-        closeBtn.addEventListener('click', close);
+        // T5 : "Plus tard" → POST /review_snooze (server-side, 4h). Optimiste UX :
+        // on ferme immediatement et on log uniquement en cas d'echec — l'apprenant
+        // ne doit jamais attendre. Si le call echoue, le pop-up pourra reapparaitre
+        // demain (plafond 1/jour s'applique), ce qui est acceptable.
+        later.addEventListener('click', function() {
+            postSnooze();
+            close();
+        });
+
+        // T5 : "Annuler" → confirmation modale puis POST /review_cancel sur les
+        // cmids listes par le serveur. Si l'apprenant confirme, on appelle l'API
+        // et on ferme. La capture des consultations continue (invariant T5).
+        closeBtn.addEventListener('click', function() {
+            if (window.confirm(s('cancelConfirm'))) {
+                postCancel(data.cmids || []);
+                close();
+            }
+        });
 
         launch.addEventListener('click', function() {
             if (!data.quizSessionId) {
@@ -163,6 +178,29 @@
             renderLoading(s('loading'));
             fetchQuizPolling(data.quizSessionId);
         });
+    }
+
+    function postSnooze() {
+        var c = cfg();
+        if (!c) return;
+        var fd = new FormData();
+        fd.append('sesskey', c.sesskey);
+        window.fetch(c.wwwroot + '/local/astusse/review_snooze.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: fd
+        }).catch(function() { /* silent: optimiste UX */ });
+    }
+
+    function postCancel(cmids) {
+        var c = cfg();
+        if (!c || !cmids || !cmids.length) return;
+        window.fetch(c.wwwroot + '/local/astusse/review_cancel.php?sesskey=' + encodeURIComponent(c.sesskey), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cmids: cmids})
+        }).catch(function() { /* silent: optimiste UX */ });
     }
 
     // ========================================================================

@@ -2552,3 +2552,246 @@
 .local-astusse-bilan-list li:last-child {
     border-bottom: none;
 }
+
+/* =======================================================================
+   T5 — Page profil "Mes preferences de revision espacee"
+   ======================================================================= */
+
+.local-astusse-prefs-page {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 960px;
+}
+
+/* Hero : etat global + bouton toggle. Border-left rouge si desactive, vert si actif. */
+
+.local-astusse-prefs-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    border-left: 4px solid #16a34a;
+    flex-wrap: wrap;
+}
+
+.local-astusse-prefs-hero.disabled {
+    border-left-color: #dc2626;
+}
+
+.local-astusse-prefs-hero-left {
+    flex: 1 1 320px;
+    min-width: 280px;
+}
+
+.local-astusse-prefs-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.local-astusse-prefs-kicker.active {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.local-astusse-prefs-kicker.disabled {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.local-astusse-prefs-kicker .fa {
+    margin-right: 0.4rem;
+}
+
+.local-astusse-prefs-hero-title {
+    font-size: 1.15rem;
+    margin: 0 0 0.3rem 0;
+    color: #0f172a;
+}
+
+.local-astusse-prefs-hero-desc {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: #475569;
+    margin: 0;
+    max-width: 56ch;
+}
+
+.local-astusse-prefs-hero-action {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.local-astusse-prefs-hero-action .btn {
+    min-width: 200px;
+}
+
+.local-astusse-prefs-hero-action .btn .fa {
+    margin-right: 0.4rem;
+}
+
+/* Bandeau snooze actif. */
+
+.local-astusse-prefs-snooze-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #2563eb;
+    border-radius: 0.75rem;
+}
+
+.local-astusse-prefs-snooze-icon {
+    font-size: 1.4rem;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+
+.local-astusse-prefs-snooze-body strong {
+    display: block;
+    color: #1e3a8a;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+}
+
+.local-astusse-prefs-snooze-desc {
+    color: #475569;
+    font-size: 0.88rem;
+}
+
+/* Cards de sections (cancelled / mastered). */
+
+.local-astusse-prefs-card {
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+}
+
+.local-astusse-prefs-section-title {
+    font-size: 1.05rem;
+    margin: 0 0 1rem 0;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.local-astusse-prefs-section-title .fa {
+    color: #64748b;
+}
+
+.local-astusse-prefs-empty {
+    color: #64748b;
+    font-style: italic;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.local-astusse-prefs-resource-list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.local-astusse-prefs-resource-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    flex-wrap: wrap;
+}
+
+.local-astusse-prefs-resource-card:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.local-astusse-prefs-resource-card.mastered {
+    border-left: 3px solid #f59e0b;
+}
+
+.local-astusse-prefs-resource-card.cancelled {
+    border-left: 3px solid #94a3b8;
+}
+
+.local-astusse-prefs-resource-body {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 320px;
+    min-width: 240px;
+}
+
+.local-astusse-prefs-resource-icon {
+    color: #64748b;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.local-astusse-prefs-resource-card.mastered .local-astusse-prefs-resource-icon {
+    color: #f59e0b;
+}
+
+.local-astusse-prefs-resource-info {
+    min-width: 0;
+}
+
+.local-astusse-prefs-resource-name {
+    display: block;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+}
+
+.local-astusse-prefs-resource-metas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.local-astusse-prefs-resource-meta .fa {
+    margin-right: 0.25rem;
+    opacity: 0.7;
+}
+
+.local-astusse-prefs-resource-meta a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.local-astusse-prefs-resource-meta a:hover {
+    text-decoration: underline;
+}
+
+.local-astusse-prefs-resource-action {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.local-astusse-prefs-resource-action .btn .fa {
+    margin-right: 0.3rem;
+}
+
+.local-astusse-prefs-dot {
+    display: none; /* place reservee si on veut ajouter un bullet plus tard */
+}

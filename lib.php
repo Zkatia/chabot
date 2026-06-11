@@ -2541,11 +2541,28 @@ function local_astusse_before_footer(): string {
         return '';
     }
 
-    // Inject once per login : the flag is set by login_observer and consumed here.
-    if (empty($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG})) {
+    // T5 (bypass post-snooze) : on injecte le JS dans deux cas :
+    //   (a) 1ere page apres login (flag pose par login_observer, comportement T2 historique)
+    //   (b) une snooze "Plus tard" posee aujourd'hui a expire — le JS doit pouvoir
+    //       redemander un pop-up sans necessiter logout/login.
+    //
+    // La pref local_astusse_review_snooze_until est posee par review_snooze.php au
+    // clic Plus tard (timestamp UNIX = now + 4h). On l'efface quand l'injection est
+    // declenchee par ce mecanisme pour eviter de re-injecter en boucle. Si le user
+    // re-clique Plus tard, la pref sera reecrite.
+    $flagset = !empty($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG});
+    $snoozeuntil = (int)get_user_preferences('local_astusse_review_snooze_until', 0);
+    $snoozeexpired = ($snoozeuntil > 0 && $snoozeuntil <= time());
+
+    if (!$flagset && !$snoozeexpired) {
         return '';
     }
-    unset($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG});
+    if ($flagset) {
+        unset($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG});
+    }
+    if ($snoozeexpired) {
+        unset_user_preference('local_astusse_review_snooze_until');
+    }
 
     // Global opt-out (preference managed in T5 ; default off).
     if (get_user_preferences('local_astusse_review_optout', 0)) {
@@ -2694,4 +2711,43 @@ function local_astusse_resolve_cmid_titles(array $cmids): array {
         }
     }
     return $out;
+}
+
+/**
+ * T5 — Ajoute un lien "Préférences de révision" dans le menu utilisateur.
+ *
+ * Permet a l'apprenant d'acceder a sa page d'opt-out global + reactivation
+ * des ressources annulees ou maitrisees.
+ *
+ * @param navigation_node $navigation
+ * @param stdClass        $user
+ * @param context_user    $usercontext
+ * @param stdClass        $course
+ * @param context_course  $coursecontext
+ * @return void
+ */
+function local_astusse_extend_navigation_user_settings(
+    navigation_node $navigation,
+    stdClass $user,
+    context_user $usercontext,
+    stdClass $course,
+    context_course $coursecontext
+): void {
+    global $USER;
+
+    // Visible uniquement par l'apprenant lui-meme (pas le menu d'edition admin
+    // d'un autre user). On evite ainsi qu'un manager modifie les prefs d'autrui.
+    if ((int)$user->id !== (int)$USER->id) {
+        return;
+    }
+
+    $url = new moodle_url('/local/astusse/review_preferences.php');
+    $node = navigation_node::create(
+        get_string('prefs:title', 'local_astusse'),
+        $url,
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_astusse_review_prefs'
+    );
+    $navigation->add_node($node);
 }

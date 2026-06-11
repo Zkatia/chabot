@@ -384,6 +384,46 @@ $string['popup:launch'] = 'Lancer';
 $string['popup:later'] = 'Plus tard';
 $string['popup:close'] = 'Annuler';
 
+// T5 — Confirmation modale "Annuler ces ressources".
+$string['popup:cancel_confirm'] = 'Voulez-vous vraiment ne plus voir ces ressources dans vos prochains rappels de révision ? Vous pourrez les réactiver à tout moment depuis votre profil.';
+
+// T5 — Page profil "Préférences de révision".
+$string['prefs:title'] = 'Préférences de révision';
+$string['prefs:heading'] = 'Mes préférences de révision espacée';
+$string['prefs:api_error'] = 'Impossible de joindre le service de révision. Vos préférences seront affichées dès qu\'il sera de nouveau disponible.';
+$string['prefs:global_heading'] = 'Activer ou désactiver les rappels';
+$string['prefs:global_intro'] = 'Quand les rappels sont désactivés, vous ne verrez plus jamais de pop-up de révision. Vos consultations continuent d\'être prises en compte en silence : à la réactivation, le système reprend là où il en était.';
+$string['prefs:snoozed_until'] = 'Les rappels sont mis en pause jusqu\'au {$a}.';
+$string['prefs:disable_button'] = 'Désactiver les rappels';
+$string['prefs:enable_button'] = 'Réactiver les rappels';
+$string['prefs:resources_heading'] = 'Mes ressources mises de côté';
+$string['prefs:resources_empty'] = 'Aucune ressource n\'est actuellement annulée ou maîtrisée. Toutes vos ressources consultées sont susceptibles d\'apparaître dans un futur quiz.';
+$string['prefs:col_resource'] = 'Ressource';
+$string['prefs:col_course'] = 'Cours';
+$string['prefs:col_state'] = 'Statut';
+$string['prefs:col_action'] = 'Action';
+$string['prefs:state_mastered'] = 'Maîtrisée';
+$string['prefs:state_cancelled'] = 'Annulée par moi';
+$string['prefs:state_mastered_at'] = 'Maîtrisée le {$a}';
+$string['prefs:state_cancelled_at'] = 'Annulée le {$a}';
+$string['prefs:reactivate_button'] = 'Réactiver';
+// T5 — Refonte UX page profil (v2026060925).
+$string['prefs:status_active'] = 'Rappels activés';
+$string['prefs:status_disabled'] = 'Rappels désactivés';
+$string['prefs:hero_title'] = 'Pop-ups de révision à la connexion';
+$string['prefs:hero_desc_enabled'] = 'Vous recevez un rappel à la connexion pour réviser vos ressources récemment consultées. Vous pouvez désactiver ces rappels à tout moment — vos consultations continueront d\'être prises en compte pour quand vous les réactiverez.';
+$string['prefs:hero_desc_disabled'] = 'Aucun pop-up de révision ne vous est proposé. Vos consultations sont quand même enregistrées : à la réactivation, le système reprend là où il s\'était arrêté.';
+$string['prefs:snooze_active_title'] = 'Rappels mis en pause';
+$string['prefs:snooze_active_desc'] = 'Reprise automatique le {$a}.';
+$string['prefs:cancelled_heading'] = 'Ressources mises de côté';
+$string['prefs:cancelled_empty'] = 'Vous n\'avez écarté aucune ressource du cycle de révision pour le moment.';
+$string['prefs:mastered_heading'] = 'Ressources maîtrisées';
+$string['prefs:mastered_empty'] = 'Pas encore de ressource marquée comme maîtrisée. Trois sessions de quiz consécutives réussies sur une ressource la déplaceront ici automatiquement.';
+$string['prefs:notif_enabled'] = 'Les rappels de révision ont été réactivés.';
+$string['prefs:notif_disabled'] = 'Les rappels de révision ont été désactivés.';
+$string['prefs:notif_reactivated'] = 'Cette ressource est de nouveau dans votre cycle de révision.';
+$string['prefs:notif_error'] = 'Une erreur est survenue. Veuillez réessayer dans un instant.';
+
 // T3 — Quiz (Etats 2, 3, 4).
 $string['quiz:loading'] = 'Préparation des questions…';
 $string['quiz:waiting_generation'] = 'Génération en cours, encore quelques secondes…';

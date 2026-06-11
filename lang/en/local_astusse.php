@@ -384,6 +384,46 @@ $string['popup:launch'] = 'Start';
 $string['popup:later'] = 'Later';
 $string['popup:close'] = 'Cancel';
 
+// T5 — Confirmation modal "Cancel these resources".
+$string['popup:cancel_confirm'] = 'Do you really want to stop seeing these resources in your future review reminders? You can reactivate them at any time from your profile.';
+
+// T5 — Review preferences profile page.
+$string['prefs:title'] = 'Review preferences';
+$string['prefs:heading'] = 'My spaced-repetition review preferences';
+$string['prefs:api_error'] = 'The review service is currently unreachable. Your preferences will appear as soon as it is back.';
+$string['prefs:global_heading'] = 'Enable or disable reminders';
+$string['prefs:global_intro'] = 'When reminders are disabled, you will never see a review pop-up again. Your consultations keep being tracked silently: upon re-enabling, the system resumes where it left off.';
+$string['prefs:snoozed_until'] = 'Reminders are paused until {$a}.';
+$string['prefs:disable_button'] = 'Disable reminders';
+$string['prefs:enable_button'] = 'Enable reminders';
+$string['prefs:resources_heading'] = 'My set-aside resources';
+$string['prefs:resources_empty'] = 'No resource is currently cancelled or mastered. All your consulted resources may appear in a future quiz.';
+$string['prefs:col_resource'] = 'Resource';
+$string['prefs:col_course'] = 'Course';
+$string['prefs:col_state'] = 'Status';
+$string['prefs:col_action'] = 'Action';
+$string['prefs:state_mastered'] = 'Mastered';
+$string['prefs:state_cancelled'] = 'Cancelled by me';
+$string['prefs:state_mastered_at'] = 'Mastered on {$a}';
+$string['prefs:state_cancelled_at'] = 'Cancelled on {$a}';
+$string['prefs:reactivate_button'] = 'Reactivate';
+// T5 — Profile page UX refresh (v2026060925).
+$string['prefs:status_active'] = 'Reminders on';
+$string['prefs:status_disabled'] = 'Reminders off';
+$string['prefs:hero_title'] = 'Review pop-ups at login';
+$string['prefs:hero_desc_enabled'] = 'You receive a reminder at login to review your recently consulted resources. You can disable reminders at any time — your consultations will still be tracked silently for when you turn them back on.';
+$string['prefs:hero_desc_disabled'] = 'No review pop-ups are shown to you. Your consultations are still recorded: when you re-enable reminders, the system picks up where it left off.';
+$string['prefs:snooze_active_title'] = 'Reminders paused';
+$string['prefs:snooze_active_desc'] = 'Automatic resume on {$a}.';
+$string['prefs:cancelled_heading'] = 'Resources set aside';
+$string['prefs:cancelled_empty'] = 'You haven\'t set aside any resource from the review cycle yet.';
+$string['prefs:mastered_heading'] = 'Mastered resources';
+$string['prefs:mastered_empty'] = 'No resource marked as mastered yet. Three consecutive successful quiz sessions on a resource will move it here automatically.';
+$string['prefs:notif_enabled'] = 'Review reminders have been turned back on.';
+$string['prefs:notif_disabled'] = 'Review reminders have been turned off.';
+$string['prefs:notif_reactivated'] = 'This resource is back in your review cycle.';
+$string['prefs:notif_error'] = 'Something went wrong. Please try again in a moment.';
+
 // T3 — Quiz (States 2, 3, 4).
 $string['quiz:loading'] = 'Preparing questions…';
 $string['quiz:waiting_generation'] = 'Generating, a few more seconds…';

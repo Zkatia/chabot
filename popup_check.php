@@ -53,7 +53,10 @@ if (isguestuser()) {
     local_astusse_popup_none('guest');
 }
 
-// Global opt-out (T5 preference ; default off).
+// T5 — Cache local du opt-out global, posé par la page profil au moment
+// du toggle. Court-circuit rapide pour éviter un appel API si on sait deja
+// qu'on est désactivé. Source de vérité finale : l'API IA, qui appliquera
+// son propre filtre (snooze + disabled + cancelled/mastered cmids).
 if (get_user_preferences('local_astusse_review_optout', 0)) {
     local_astusse_popup_none('opt_out');
 }
@@ -103,6 +106,13 @@ $reviewline = $a->fragile > 0
 // T3 : si la pre-generation a ete declenchee cote API, on propage l'ID au front.
 $quizsessionid = isset($body['quizSessionId']) ? (string)$body['quizSessionId'] : null;
 
+// T5 : cmids des ressources proposees au pop-up. Utilises par le bouton "Annuler"
+// pour les marquer comme cancelled cote API IA.
+$cmids = [];
+if (isset($body['cmids']) && is_array($body['cmids'])) {
+    $cmids = array_values(array_filter(array_map('intval', $body['cmids']), fn($v) => $v > 0));
+}
+
 // Dict de strings inlinees pour le quiz (Etats 2, 3, 4). Le JS consomme via s(key)
 // et fmt(tpl, params) ; cela evite la dependance a M.str / cache navigateur sur le
 // bundle strings JS, et garde un seul aller-retour HTTP au login.
@@ -110,6 +120,7 @@ $quizsessionid = isset($body['quizSessionId']) ? (string)$body['quizSessionId'] 
 // Templates : on passe un placeholder {key} comme valeur a get_string, Moodle
 // remplace les $a->key par {key} et on conserve la traduction.
 $quizstrings = [
+    'cancelConfirm'           => get_string('popup:cancel_confirm', 'local_astusse'),
     'loading'                 => get_string('quiz:loading', 'local_astusse'),
     'waitingGeneration'       => get_string('quiz:waiting_generation', 'local_astusse'),
     'librePlaceholder'        => get_string('quiz:libre_placeholder', 'local_astusse'),
@@ -155,6 +166,7 @@ echo json_encode([
     'btnLater'      => get_string('popup:later', 'local_astusse'),
     'btnClose'      => get_string('popup:close', 'local_astusse'),
     'quizSessionId' => $quizsessionid,
+    'cmids'         => $cmids,
     'strings'       => $quizstrings,
 ]);
 die;
