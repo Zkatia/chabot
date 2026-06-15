@@ -19,18 +19,112 @@
     }
 
     const courseMap = new Map((config.courses || []).map((course) => [String(course.id), course]));
-    const courseSelect = document.getElementById('local-astusse-chatapp-course');
-    const agentSelect = document.getElementById('local-astusse-chatapp-agent');
+    const appRoot = document.getElementById('local-astusse-chatapp');
+    const courseButton = document.getElementById('local-astusse-chatapp-course');
+    const courseLabelNode = document.getElementById('local-astusse-chatapp-course-label');
+    const courseMenu = document.getElementById('local-astusse-chatapp-course-menu');
+    const courseItemsNode = document.getElementById('local-astusse-chatapp-course-items');
+    const courseWrap = document.getElementById('local-astusse-chatapp-course-wrap');
+    const agentControl = document.getElementById('local-astusse-chatapp-agent');
+    const agentButtons = agentControl ? Array.prototype.slice.call(agentControl.querySelectorAll('.la-seg')) : [];
     const messageInput = document.getElementById('local-astusse-chatapp-input');
     const sendButton = document.getElementById('local-astusse-chatapp-send');
     const newButton = document.getElementById('local-astusse-chatapp-new');
+    const composerNode = document.getElementById('local-astusse-chatapp-composer');
     const statusNode = document.getElementById('local-astusse-chatapp-status');
+    const statusTextNode = document.getElementById('local-astusse-chatapp-status-text');
+    const themeButton = document.getElementById('local-astusse-chatapp-theme');
     const threadList = document.getElementById('local-astusse-chatapp-threadlist');
+    const searchInput = document.getElementById('local-astusse-chatapp-search');
     const messagesNode = document.getElementById('local-astusse-chatapp-messages');
-    const courseContextNode = document.getElementById('local-astusse-chatapp-course-context');
-    const referenceCardNode = document.getElementById('local-astusse-chatapp-reference-card');
-    const referenceContextNode = document.getElementById('local-astusse-chatapp-reference-context');
-    const courseNoteNode = document.getElementById('local-astusse-chatapp-course-note');
+
+    // ── Charte « autoporteur » : icones inline (Lucide-style) + couleurs d'agents ──
+    const SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+    const AGENT_ICONS = {
+        explicatif: SVG_OPEN + '<path d="M12 2 4 6v6c0 5 3.4 7.7 8 10 4.6-2.3 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></svg>',
+        socratique: SVG_OPEN + '<path d="M9.5 9a2.5 2.5 0 1 1 3 2.45c-.8.2-1.5.9-1.5 1.8V14"/><path d="M11 17.5h.01"/><circle cx="12" cy="12" r="9"/></svg>'
+    };
+    const AGENT_COLORS = {
+        explicatif: 'var(--agent-prescriptif)',
+        socratique: 'var(--agent-socratic)'
+    };
+    const ICON_OCTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M6.7 13.4C6.2 8.9 8.7 6 12 6s5.8 2.9 5.3 7.4"/>' +
+        '<path d="M6.9 12.9c-2.1 1.2-3.2 3.4-2.4 5 .45.9 1.6.85 1.95-.25"/>' +
+        '<path d="M9.4 13.7c-1.05 1.7-1.45 4-.5 5.4.55.8 1.6.6 1.7-.55"/>' +
+        '<path d="M12 14c0 2.2-.05 3.95 0 5.5"/>' +
+        '<path d="M14.6 13.7c1.05 1.7 1.45 4 .5 5.4-.55.8-1.6.6-1.7-.55"/>' +
+        '<path d="M17.1 12.9c2.1 1.2 3.2 3.4 2.4 5-.45.9-1.6.85-1.95-.25"/></svg>';
+    const ICON_SPARK = SVG_OPEN + '<path d="M12 3l1.9 5.6a3 3 0 0 0 1.9 1.9L21.4 12l-5.6 1.9a3 3 0 0 0-1.9 1.9' +
+        'L12 21.4l-1.9-5.6a3 3 0 0 0-1.9-1.9L2.6 12l5.6-1.9a3 3 0 0 0 1.9-1.9L12 3z"/></svg>';
+    const ICON_COPY = SVG_OPEN + '<rect x="9" y="9" width="12" height="12" rx="2"/>' +
+        '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const ICON_TRASH = SVG_OPEN + '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7' +
+        'a2 2 0 0 1-2-2V6"/></svg>';
+    const ICON_SUN = SVG_OPEN + '<circle cx="12" cy="12" r="4"/>' +
+        '<path d="M12 2v2M12 20v2M5 5l1.4 1.4M17.6 17.6 19 19M2 12h2M20 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>';
+    const ICON_MOON = SVG_OPEN + '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+    const ICON_BOOK = SVG_OPEN + '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>' +
+        '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+    const ICON_CHECK = SVG_OPEN + '<path d="M20 6 9 17l-5-5"/></svg>';
+
+    function agentLabel(agentId) {
+        return (config.labels && config.labels.agents && config.labels.agents[agentId]) || agentId;
+    }
+
+    function agentRole(agentId) {
+        return agentId === 'socratique' ? config.strings.agentSocratiqueRole : config.strings.agentExplicatifRole;
+    }
+
+    function agentDesc(agentId) {
+        return agentId === 'socratique' ? config.strings.agentSocratiqueDesc : config.strings.agentExplicatifDesc;
+    }
+
+    // ── Contrôle segmenté du mode d'agent ──
+    let currentAgent = 'explicatif';
+
+    function getAgentValue() {
+        return currentAgent;
+    }
+
+    function setAgentValue(value) {
+        currentAgent = normalizeAgentType(value);
+        agentButtons.forEach((button) => {
+            button.classList.toggle('is-active', button.dataset.agent === currentAgent);
+        });
+    }
+
+    // ── Thème clair/sombre persistant ──
+    const THEME_STORAGE_KEY = 'local_astusse_chat_theme';
+
+    function applyTheme(theme) {
+        const next = theme === 'dark' ? 'dark' : 'light';
+        if (appRoot) {
+            appRoot.setAttribute('data-theme', next);
+        }
+        if (themeButton) {
+            themeButton.innerHTML = next === 'dark' ? ICON_SUN : ICON_MOON;
+        }
+    }
+
+    let storedTheme = 'light';
+    try {
+        storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+    } catch (e) {
+    }
+    applyTheme(storedTheme);
+    if (themeButton) {
+        themeButton.addEventListener('click', () => {
+            const next = appRoot && appRoot.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            try {
+                window.localStorage.setItem(THEME_STORAGE_KEY, next);
+            } catch (e) {
+            }
+        });
+    }
 
     let isSending = false;
     const syncingCourses = new Map();
@@ -253,7 +347,7 @@
             courseId: key,
             sessionId: sessionId,
             title: config.strings.untitledConversation,
-            agentType: agentSelect.value || (config.defaults && config.defaults.agentType) || 'explicatif',
+            agentType: getAgentValue() || (config.defaults && config.defaults.agentType) || 'explicatif',
             updatedAt: Date.now(),
             backendBacked: false,
             historyLoadedAt: 0,
@@ -304,7 +398,7 @@
     }
 
     function setStatus(text, kind) {
-        statusNode.textContent = text;
+        statusTextNode.textContent = text;
         statusNode.classList.remove('is-error', 'is-busy');
         if (kind === 'error') {
             statusNode.classList.add('is-error');
@@ -313,45 +407,63 @@
         }
     }
 
-    function syncCourseOptions() {
-        const selectedCourseId = getSelectedCourseId();
-        courseSelect.innerHTML = '';
-        if (!config.lockedCourse) {
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = config.strings.coursePlaceholder;
-            courseSelect.appendChild(placeholder);
-        }
-        (config.courses || []).forEach((course) => {
-            const option = document.createElement('option');
-            option.value = String(course.id);
-            option.textContent = course.fullname;
-            if (String(course.id) === selectedCourseId) {
-                option.selected = true;
-            }
-            courseSelect.appendChild(option);
-        });
-        courseSelect.disabled = !!config.lockedCourse;
-        courseNoteNode.textContent = config.lockedCourse ? config.strings.courseLocked : config.strings.historyNotice;
+    // ── Menu déroulant custom des cours (charte autoporteur) ──
+    let courseMenuOpen = false;
+
+    function closeCourseMenu() {
+        courseMenuOpen = false;
+        courseMenu.hidden = true;
+        courseButton.setAttribute('aria-expanded', 'false');
     }
 
-    function renderCourseContext() {
-        const courseId = getSelectedCourseId();
-        if (!courseId || !courseMap.has(courseId)) {
-            courseContextNode.textContent = config.strings.coursePlaceholder;
-            referenceCardNode.hidden = true;
+    function openCourseMenu() {
+        if (config.lockedCourse) {
             return;
         }
-        const course = courseMap.get(courseId);
-        courseContextNode.textContent = course.fullname;
-        if (course.referenceVisible) {
-            referenceCardNode.hidden = false;
-            referenceCardNode.classList.remove('is-valid', 'is-invalid', 'is-missing');
-            referenceCardNode.classList.add('is-' + String(course.referenceState || 'missing'));
-            referenceContextNode.textContent = course.referenceText || '';
-        } else {
-            referenceCardNode.hidden = true;
+        courseMenuOpen = true;
+        courseMenu.hidden = false;
+        courseButton.setAttribute('aria-expanded', 'true');
+    }
+
+    async function pickCourse(courseId) {
+        closeCourseMenu();
+        if (String(courseId) === getSelectedCourseId()) {
+            return;
         }
+        setSelectedCourseId(String(courseId));
+        setStatus(config.strings.ready, '');
+        render();
+        await ensureCourseReady(getSelectedCourseId());
+    }
+
+    function syncCourseOptions() {
+        const selectedCourseId = getSelectedCourseId();
+        const selected = selectedCourseId && courseMap.has(selectedCourseId)
+            ? courseMap.get(selectedCourseId)
+            : null;
+
+        courseLabelNode.textContent = selected ? selected.fullname : config.strings.coursePlaceholder;
+        courseButton.classList.toggle('is-unset', !selected);
+        courseButton.disabled = !!config.lockedCourse;
+
+        courseItemsNode.innerHTML = '';
+        (config.courses || []).forEach((course) => {
+            const isSelected = String(course.id) === selectedCourseId;
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'la-menu-item';
+            item.setAttribute('role', 'option');
+            item.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+            item.innerHTML =
+                '<span class="la-mi-ico">' + ICON_BOOK + '</span>' +
+                '<span class="la-mi-body"><b>' + escapeHtml(course.fullname) + '</b>' +
+                '<span>' + escapeHtml(course.shortname || '') + '</span></span>' +
+                (isSelected ? '<span class="la-mi-check">' + ICON_CHECK + '</span>' : '');
+            item.addEventListener('click', () => {
+                pickCourse(course.id);
+            });
+            courseItemsNode.appendChild(item);
+        });
     }
 
     function renderThreadList() {
@@ -359,33 +471,53 @@
         threadList.innerHTML = '';
         if (!courseId) {
             const empty = document.createElement('div');
-            empty.className = 'local-astusse-chatapp-sidebar-empty';
+            empty.className = 'la-sb-empty';
             empty.textContent = config.strings.noCourseDetail;
             threadList.appendChild(empty);
             return;
         }
 
         const activeThread = getActiveThread(courseId);
-        const threads = getSortedThreads(courseId);
+        let threads = getSortedThreads(courseId);
         if (!threads.length) {
             const empty = document.createElement('div');
-            empty.className = 'local-astusse-chatapp-sidebar-empty';
+            empty.className = 'la-sb-empty';
             empty.innerHTML = '<strong>' + escapeHtml(config.strings.conversationsEmpty) + '</strong><span>' +
                 escapeHtml(config.strings.conversationsEmptyDetail) + '</span>';
             threadList.appendChild(empty);
             return;
         }
 
+        // Filtrage par la recherche de la sidebar (correspondance sur le titre).
+        const query = searchInput ? String(searchInput.value || '').trim().toLowerCase() : '';
+        if (query) {
+            threads = threads.filter((thread) =>
+                String(thread.title || '').toLowerCase().indexOf(query) !== -1);
+            if (!threads.length) {
+                const empty = document.createElement('div');
+                empty.className = 'la-sb-empty';
+                empty.textContent = config.strings.searchNoResults;
+                threadList.appendChild(empty);
+                return;
+            }
+        }
+
         threads.forEach((thread) => {
+            const agentId = normalizeAgentType(thread.agentType);
             const item = document.createElement('div');
-            item.className = 'local-astusse-chatapp-thread' + (activeThread && activeThread.id === thread.id ? ' is-active' : '');
+            item.className = 'la-convo is-' + agentId +
+                (activeThread && activeThread.id === thread.id ? ' is-active' : '');
+
+            const dot = document.createElement('span');
+            dot.className = 'la-dot';
+            dot.setAttribute('aria-hidden', 'true');
 
             const openButton = document.createElement('button');
             openButton.type = 'button';
-            openButton.className = 'local-astusse-chatapp-thread-main';
+            openButton.className = 'la-convo-main';
             openButton.innerHTML =
-                '<strong>' + escapeHtml(thread.title || config.strings.untitledConversation) + '</strong>' +
-                '<span>' + escapeHtml((config.labels.agents && config.labels.agents[thread.agentType]) || thread.agentType) + '</span>';
+                '<span class="la-convo-title">' + escapeHtml(thread.title || config.strings.untitledConversation) + '</span>' +
+                '<span class="la-convo-meta">' + escapeHtml(agentLabel(agentId)) + '</span>';
             openButton.addEventListener('click', async () => {
                 setActiveThread(courseId, thread.id);
                 render();
@@ -394,9 +526,10 @@
 
             const deleteButton = document.createElement('button');
             deleteButton.type = 'button';
-            deleteButton.className = 'local-astusse-chatapp-thread-delete';
-            deleteButton.textContent = config.strings.deleteConversationLabel;
+            deleteButton.className = 'la-icon-btn la-convo-delete';
+            deleteButton.innerHTML = ICON_TRASH;
             deleteButton.disabled = deletingThreads.has(thread.id);
+            deleteButton.title = config.strings.deleteConversationLabel;
             deleteButton.setAttribute('aria-label', config.strings.deleteConversationLabel + ': ' +
                 String(thread.title || config.strings.untitledConversation));
             deleteButton.addEventListener('click', async (event) => {
@@ -408,38 +541,156 @@
                 await deleteThread(thread);
             });
 
+            item.appendChild(dot);
             item.appendChild(openButton);
             item.appendChild(deleteButton);
             threadList.appendChild(item);
         });
     }
 
-    function renderEmptyState(title, detail) {
+    // Écran d'accueil charte « autoporteur » : logo, salutation, cartes d'agents, suggestions.
+    function renderWelcome() {
+        const courseId = getSelectedCourseId();
+        const course = courseId && courseMap.has(courseId) ? courseMap.get(courseId) : null;
+
         messagesNode.innerHTML = '';
         const empty = document.createElement('div');
-        empty.className = 'local-astusse-chatapp-empty';
-        empty.innerHTML = '<strong>' + escapeHtml(title) + '</strong><p>' + escapeHtml(detail) + '</p>';
+        empty.className = 'la-empty';
+        const inner = document.createElement('div');
+        inner.className = 'la-empty-inner';
+
+        const logo = document.createElement('div');
+        logo.className = 'la-empty-logo';
+        logo.innerHTML = ICON_OCTO;
+        inner.appendChild(logo);
+
+        const heading = document.createElement('h1');
+        heading.textContent = config.strings.emptyGreeting;
+        inner.appendChild(heading);
+
+        const sub = document.createElement('p');
+        sub.className = 'la-sub';
+        if (course) {
+            const parts = String(config.strings.emptyCourseLoaded).split('%COURSE%');
+            sub.appendChild(document.createTextNode(parts[0] || ''));
+            const courseName = document.createElement('b');
+            courseName.textContent = course.fullname;
+            sub.appendChild(courseName);
+            sub.appendChild(document.createTextNode(parts[1] || ''));
+        } else {
+            sub.textContent = config.strings.emptyCourseNeeded;
+        }
+        inner.appendChild(sub);
+
+        const grid = document.createElement('div');
+        grid.className = 'la-agent-grid';
+        ['socratique', 'explicatif'].forEach((agentId) => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'la-agent-card' + (getAgentValue() === agentId ? ' is-selected' : '');
+            card.style.setProperty('--ag', AGENT_COLORS[agentId]);
+            card.innerHTML =
+                '<div class="la-ag-icon">' + AGENT_ICONS[agentId] + '</div>' +
+                '<div class="la-ag-name">' + escapeHtml(agentLabel(agentId)) + '</div>' +
+                '<div class="la-ag-role">' + escapeHtml(agentRole(agentId)) + '</div>' +
+                '<div class="la-ag-desc">' + escapeHtml(agentDesc(agentId)) + '</div>';
+            card.addEventListener('click', () => {
+                applyAgentChange(agentId);
+                renderWelcome();
+            });
+            grid.appendChild(card);
+        });
+        inner.appendChild(grid);
+
+        const starters = Array.isArray(config.strings.starters) ? config.strings.starters : [];
+        if (starters.length) {
+            const suggLabel = document.createElement('div');
+            suggLabel.className = 'la-sugg-label';
+            suggLabel.textContent = config.strings.starterLabel;
+            inner.appendChild(suggLabel);
+
+            const row = document.createElement('div');
+            row.className = 'la-sugg-row';
+            starters.forEach((starter) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'la-sugg';
+                button.disabled = !course;
+                button.innerHTML = ICON_SPARK + escapeHtml(starter);
+                button.addEventListener('click', () => {
+                    messageInput.value = starter;
+                    messageInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    messageInput.focus();
+                });
+                row.appendChild(button);
+            });
+            inner.appendChild(row);
+        }
+
+        empty.appendChild(inner);
         messagesNode.appendChild(empty);
     }
 
     function renderMessage(message) {
+        const agentId = normalizeAgentType(message.agentUsed || getAgentValue());
+        const isAssistant = message.role === 'assistant';
+
         const article = document.createElement('article');
-        article.className = 'local-astusse-chatapp-message is-' + message.role +
+        article.className = 'la-msg ' + (isAssistant ? 'la-ai' : 'la-user') +
             (message.pending ? ' is-pending' : '') +
             (message.error ? ' is-error' : '');
         article.dataset.messageId = message.id;
+        if (isAssistant) {
+            article.style.setProperty('--ag', AGENT_COLORS[agentId]);
+        }
 
-        const role = document.createElement('span');
-        role.className = 'local-astusse-chatapp-message-role';
-        role.textContent = message.role === 'assistant' ? config.strings.assistantLabel : config.strings.studentLabel;
-        article.appendChild(role);
+        const meta = document.createElement('div');
+        meta.className = 'la-msg-meta';
+        if (isAssistant) {
+            const badge = document.createElement('span');
+            badge.className = 'la-msg-badge';
+            badge.innerHTML = AGENT_ICONS[agentId] + escapeHtml(agentLabel(agentId)) +
+                ' · ' + escapeHtml(agentRole(agentId));
+            meta.appendChild(badge);
+        } else {
+            const name = document.createElement('span');
+            name.className = 'la-name';
+            name.textContent = config.strings.studentLabel;
+            meta.appendChild(name);
+        }
+        article.appendChild(meta);
 
         const bubble = document.createElement('div');
-        bubble.className = 'local-astusse-chatapp-bubble' + (message.role === 'assistant' ? ' is-markdown' : '');
-        bubble.innerHTML = message.role === 'assistant'
-            ? renderMarkdown(message.text)
-            : escapeHtml(message.text).replace(/\n/g, '<br>');
+        bubble.className = 'la-bubble' + (isAssistant ? ' is-markdown' : '');
+        if (message.pending && message.text === config.strings.pending) {
+            // Avant le premier token : points de frappe animés.
+            bubble.innerHTML = '<span class="la-typing"><span></span><span></span><span></span></span>';
+        } else {
+            bubble.innerHTML = isAssistant
+                ? renderMarkdown(message.text)
+                : escapeHtml(message.text).replace(/\n/g, '<br>');
+        }
         article.appendChild(bubble);
+
+        if (isAssistant && !message.pending && !message.error && navigator.clipboard) {
+            const actions = document.createElement('div');
+            actions.className = 'la-msg-actions';
+            const copyButton = document.createElement('button');
+            copyButton.type = 'button';
+            copyButton.className = 'la-msg-act';
+            copyButton.innerHTML = ICON_COPY + escapeHtml(config.strings.copyLabel);
+            copyButton.addEventListener('click', () => {
+                navigator.clipboard.writeText(message.text).then(() => {
+                    copyButton.innerHTML = ICON_COPY + escapeHtml(config.strings.copiedLabel);
+                    setTimeout(() => {
+                        copyButton.innerHTML = ICON_COPY + escapeHtml(config.strings.copyLabel);
+                    }, 1600);
+                }).catch(() => {
+                });
+            });
+            actions.appendChild(copyButton);
+            article.appendChild(actions);
+        }
 
         return article;
     }
@@ -447,16 +698,19 @@
     function renderMessages() {
         const courseId = getSelectedCourseId();
         if (!courseId) {
-            renderEmptyState(config.strings.noCourseTitle, config.strings.noCourseDetail);
+            renderWelcome();
             return;
         }
         const thread = getActiveThread(courseId);
         if (!thread || !thread.messages.length) {
-            renderEmptyState(config.strings.empty, config.strings.emptyDetail);
+            renderWelcome();
             return;
         }
         messagesNode.innerHTML = '';
-        thread.messages.forEach((message) => messagesNode.appendChild(renderMessage(message)));
+        const innerWrap = document.createElement('div');
+        innerWrap.className = 'la-chat-inner';
+        thread.messages.forEach((message) => innerWrap.appendChild(renderMessage(message)));
+        messagesNode.appendChild(innerWrap);
         messagesNode.scrollTop = messagesNode.scrollHeight;
     }
 
@@ -465,19 +719,21 @@
         const disabled = !hasCourse || isSending;
         sendButton.disabled = disabled;
         newButton.disabled = disabled;
+        if (composerNode) {
+            composerNode.classList.toggle('is-disabled', !hasCourse);
+        }
     }
 
     function syncAgentSelect() {
         const courseId = getSelectedCourseId();
         const thread = courseId ? getActiveThread(courseId) : null;
-        agentSelect.value = thread
+        setAgentValue(thread
             ? normalizeAgentType(thread.agentType)
-            : normalizeAgentType((config.defaults && config.defaults.agentType) || 'explicatif');
+            : normalizeAgentType((config.defaults && config.defaults.agentType) || 'explicatif'));
     }
 
     function render() {
         syncCourseOptions();
-        renderCourseContext();
         renderThreadList();
         renderMessages();
         syncAgentSelect();
@@ -489,7 +745,7 @@
         if (!article) {
             return;
         }
-        const bubble = article.querySelector('.local-astusse-chatapp-bubble');
+        const bubble = article.querySelector('.la-bubble');
         if (bubble) {
             bubble.innerHTML = renderMarkdown(text);
         }
@@ -684,7 +940,7 @@
         const courseId = getSelectedCourseId();
         if (!courseId || !courseMap.has(courseId)) {
             setStatus(config.strings.courseRequired, 'error');
-            courseSelect.focus();
+            courseButton.focus();
             return;
         }
 
@@ -699,7 +955,7 @@
             thread = createThread(courseId);
         }
 
-        thread.agentType = normalizeAgentType(agentSelect.value || thread.agentType || 'explicatif');
+        thread.agentType = normalizeAgentType(getAgentValue() || thread.agentType || 'explicatif');
         thread.updatedAt = Date.now();
 
         const userMessage = normalizeMessage({
@@ -846,7 +1102,7 @@
         const courseId = getSelectedCourseId();
         if (!courseId || !courseMap.has(courseId)) {
             setStatus(config.strings.courseRequired, 'error');
-            courseSelect.focus();
+            courseButton.focus();
             return;
         }
         createThread(courseId);
@@ -855,22 +1111,53 @@
         messageInput.focus();
     });
 
-    courseSelect.addEventListener('change', async () => {
-        setSelectedCourseId(courseSelect.value);
-        setStatus(config.strings.ready, '');
-        render();
-        await ensureCourseReady(getSelectedCourseId());
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderThreadList();
+        });
+    }
+
+    courseButton.addEventListener('click', () => {
+        if (courseMenuOpen) {
+            closeCourseMenu();
+        } else {
+            openCourseMenu();
+        }
     });
 
-    agentSelect.addEventListener('change', () => {
+    document.addEventListener('click', (event) => {
+        if (courseMenuOpen && courseWrap && !courseWrap.contains(event.target)) {
+            closeCourseMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && courseMenuOpen) {
+            closeCourseMenu();
+            courseButton.focus();
+        }
+    });
+
+    function applyAgentChange(agentId) {
+        setAgentValue(agentId);
         const courseId = getSelectedCourseId();
         const thread = courseId ? getActiveThread(courseId) : null;
         if (thread) {
-            thread.agentType = normalizeAgentType(agentSelect.value || thread.agentType);
+            thread.agentType = normalizeAgentType(agentId || thread.agentType);
             thread.updatedAt = Date.now();
             updateThread(courseId, thread);
             renderThreadList();
         }
+    }
+
+    agentButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            applyAgentChange(button.dataset.agent);
+            // Si l'écran d'accueil est affiché, refléter la carte sélectionnée.
+            if (messagesNode.querySelector('.la-empty')) {
+                renderWelcome();
+            }
+        });
     });
 
     sendButton.addEventListener('click', sendMessage);

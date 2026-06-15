@@ -1,89 +1,147 @@
-<div class="local-astusse-chatapp" data-page-mode="{{pageMode}}">
+{{! Charte ASTUSSE « autoporteur » — Geist / Geist Mono, tokens clair+sombre }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
+
+<div class="local-astusse-chatapp" id="local-astusse-chatapp" data-page-mode="{{pageMode}}" data-theme="light">
 
     {{! ── Sidebar ── }}
-    <aside class="local-astusse-chatapp-sidebar" id="local-astusse-chatapp-sidebar">
-        <div class="local-astusse-chatapp-sidebar-header">
-            <a href="{{backUrl}}" class="local-astusse-chatapp-back-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
+    <aside class="la-sidebar" id="local-astusse-chatapp-sidebar">
+        <div class="la-sb-head">
+            <div class="la-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6.7 13.4C6.2 8.9 8.7 6 12 6s5.8 2.9 5.3 7.4"/>
+                    <path d="M6.9 12.9c-2.1 1.2-3.2 3.4-2.4 5 .45.9 1.6.85 1.95-.25"/>
+                    <path d="M9.4 13.7c-1.05 1.7-1.45 4-.5 5.4.55.8 1.6.6 1.7-.55"/>
+                    <path d="M12 14c0 2.2-.05 3.95 0 5.5"/>
+                    <path d="M14.6 13.7c1.05 1.7 1.45 4 .5 5.4-.55.8-1.6.6-1.7-.55"/>
+                    <path d="M17.1 12.9c2.1 1.2 3.2 3.4 2.4 5-.45.9-1.6.85-1.95-.25"/>
                 </svg>
-                {{backLabel}}
-            </a>
+            </div>
+            <div class="la-brand-text">
+                <span class="la-brand-name">ASTUSSE</span>
+                <span class="la-brand-sub">{{brandSubtitle}}</span>
+            </div>
             <button type="button" id="local-astusse-chatapp-sidebar-close"
-                    class="local-astusse-chatapp-sidebar-toggle" aria-label="Close sidebar">
-                ✕
+                    class="la-icon-btn" aria-label="{{closeSidebarLabel}}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
             </button>
         </div>
 
-        <button type="button" id="local-astusse-chatapp-new" class="local-astusse-chatapp-new-btn">
-            <span class="local-astusse-chatapp-new-icon">+</span>
-            {{newSessionButton}}
-        </button>
+        <div class="la-sb-actions">
+            <button type="button" id="local-astusse-chatapp-new" class="la-btn-new">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                {{newSessionButton}}
+            </button>
+        </div>
 
-        <nav class="local-astusse-chatapp-threads">
-            <div class="local-astusse-chatapp-threads-label">{{conversationsLabel}}</div>
-            <div id="local-astusse-chatapp-threadlist" class="local-astusse-chatapp-threadlist"></div>
+        <div class="la-sb-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input type="search" id="local-astusse-chatapp-search"
+                   placeholder="{{searchPlaceholder}}" aria-label="{{searchPlaceholder}}" autocomplete="off">
+        </div>
+
+        <nav class="la-sb-scroll" aria-label="{{conversationsLabel}}">
+            <div class="la-sb-group-label">{{conversationsLabel}}</div>
+            <div id="local-astusse-chatapp-threadlist"></div>
         </nav>
 
+        <div class="la-sb-foot">
+            <div class="la-avatar" aria-hidden="true">{{userInitials}}</div>
+            <div class="la-who">
+                <b>{{userFullname}}</b>
+                <a href="{{backUrl}}">{{backLabel}}</a>
+            </div>
+        </div>
     </aside>
 
     {{! ── Main area ── }}
-    <main class="local-astusse-chatapp-main">
+    <main class="la-main">
 
         {{! Top bar }}
-        <header class="local-astusse-chatapp-header">
+        <header class="la-topbar">
             <button type="button" id="local-astusse-chatapp-sidebar-open"
-                    class="local-astusse-chatapp-sidebar-toggle" aria-label="Open sidebar">
-                ☰
+                    class="la-icon-btn" aria-label="{{openSidebarLabel}}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M9 3v18"/>
+                </svg>
             </button>
-            <div class="local-astusse-chatapp-header-center">
-                <select id="local-astusse-chatapp-course" class="local-astusse-chatapp-course-select"></select>
-                <p id="local-astusse-chatapp-course-note" class="local-astusse-chatapp-header-note"></p>
-            </div>
-            <div class="local-astusse-chatapp-header-right">
-                <label for="local-astusse-chatapp-agent" class="local-astusse-chatapp-agent-label">{{agentLabel}}</label>
-                <select id="local-astusse-chatapp-agent" class="local-astusse-chatapp-agent-select">
-                    <option value="explicatif">{{agentExplicatif}}</option>
-                    <option value="socratique">{{agentSocratique}}</option>
-                </select>
-                <span id="local-astusse-chatapp-status" class="local-astusse-chatapp-status">
-                    {{statusReady}}
-                </span>
-            </div>
-        </header>
 
-        {{! Context cards (hidden by default, shown when relevant) }}
-        <section class="local-astusse-chatapp-context" aria-live="polite">
-            <div class="local-astusse-chatapp-context-card">
-                <span class="local-astusse-chatapp-context-label">{{courseContextLabel}}</span>
-                <strong id="local-astusse-chatapp-course-context"></strong>
-            </div>
-            <div id="local-astusse-chatapp-reference-card" class="local-astusse-chatapp-context-card is-reference">
-                <span class="local-astusse-chatapp-context-label">{{referenceTrainerTitle}}</span>
-                <strong id="local-astusse-chatapp-reference-context"></strong>
-            </div>
-        </section>
-
-        {{! Messages }}
-        <div id="local-astusse-chatapp-messages" class="local-astusse-chatapp-messages" aria-live="polite"></div>
-
-        {{! Composer }}
-        <div class="local-astusse-chatapp-composer">
-            <div class="local-astusse-chatapp-input-wrap">
-                <textarea id="local-astusse-chatapp-input" rows="1"
-                          placeholder="{{messagePlaceholder}}"></textarea>
-                <button type="button" id="local-astusse-chatapp-send"
-                        class="local-astusse-chatapp-send-btn" aria-label="{{sendButton}}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            <div class="la-course-wrap" id="local-astusse-chatapp-course-wrap">
+                <button type="button" id="local-astusse-chatapp-course" class="la-course-select"
+                        aria-haspopup="listbox" aria-expanded="false" aria-label="{{courseLabel}}">
+                    <svg class="la-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span class="la-label" id="local-astusse-chatapp-course-label">{{coursePlaceholder}}</span>
+                    <svg class="la-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"/>
                     </svg>
                 </button>
+                <div class="la-menu" id="local-astusse-chatapp-course-menu" role="listbox"
+                     aria-label="{{coursesAvailableLabel}}" hidden>
+                    <div class="la-menu-label">{{coursesAvailableLabel}}</div>
+                    <div id="local-astusse-chatapp-course-items"></div>
+                </div>
             </div>
-            <p class="local-astusse-chatapp-disclaimer">{{inputHint}}</p>
+
+            <div class="la-tb-spacer"></div>
+
+            <div class="la-segmented" id="local-astusse-chatapp-agent" role="group" aria-label="{{agentLabel}}">
+                <button type="button" class="la-seg" data-agent="socratique">
+                    <span class="la-seg-dot"></span>
+                    <span class="la-seg-label">{{agentSocratique}}</span>
+                </button>
+                <button type="button" class="la-seg" data-agent="explicatif">
+                    <span class="la-seg-dot"></span>
+                    <span class="la-seg-label">{{agentExplicatif}}</span>
+                </button>
+            </div>
+
+            <span id="local-astusse-chatapp-status" class="la-status-pill" role="status">
+                <span class="la-live" aria-hidden="true"></span>
+                <span class="la-status-text" id="local-astusse-chatapp-status-text">{{statusReady}}</span>
+            </span>
+
+            <button type="button" id="local-astusse-chatapp-theme" class="la-icon-btn" title="{{themeToggleLabel}}"
+                    aria-label="{{themeToggleLabel}}"></button>
+        </header>
+
+        {{! Messages / empty state }}
+        <div id="local-astusse-chatapp-messages" class="la-chat" aria-live="polite"></div>
+
+        {{! Composer }}
+        <div class="la-composer-wrap">
+            <div class="la-composer" id="local-astusse-chatapp-composer">
+                <div class="la-composer-top">
+                    <textarea id="local-astusse-chatapp-input" rows="1"
+                              placeholder="{{messagePlaceholder}}" aria-label="{{messageLabel}}"></textarea>
+                    <button type="button" id="local-astusse-chatapp-send"
+                            class="la-send-btn" aria-label="{{sendButton}}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m22 2-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <p class="la-composer-hint"><kbd>{{kbdEnter}}</kbd> {{hintSend}} · <kbd>{{kbdShift}}</kbd>+<kbd>{{kbdEnter}}</kbd> {{hintNewline}}</p>
         </div>
 
     </main>

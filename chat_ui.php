@@ -69,6 +69,8 @@ function local_astusse_build_chat_course_meta(
  * @return array
  */
 function local_astusse_get_chat_ui_strings(): array {
+    global $USER;
+
     return [
         'heading' => get_string('chat:heading', 'local_astusse'),
         'globalHeading' => get_string('chat:global_heading', 'local_astusse'),
@@ -111,6 +113,25 @@ function local_astusse_get_chat_ui_strings(): array {
         'untitledConversation' => get_string('chat:untitled_conversation', 'local_astusse'),
         'courseContextLabel' => get_string('chat:course_context_label', 'local_astusse'),
         'referenceTrainerTitle' => get_string('chat:reference_trainer_title', 'local_astusse'),
+        // Charte « autoporteur » : etat vide avec cartes d'agents + suggestions.
+        'emptyGreeting' => get_string('chat:empty_greeting', 'local_astusse', $USER->firstname),
+        // %COURSE% est remplace cote JS par le nom du cours selectionne.
+        'emptyCourseLoaded' => get_string('chat:empty_course_loaded', 'local_astusse', '%COURSE%'),
+        'emptyCourseNeeded' => get_string('chat:empty_course_needed', 'local_astusse'),
+        'agentExplicatifRole' => get_string('chat:agent_explicatif_role', 'local_astusse'),
+        'agentExplicatifDesc' => get_string('chat:agent_explicatif_desc', 'local_astusse'),
+        'agentSocratiqueRole' => get_string('chat:agent_socratique_role', 'local_astusse'),
+        'agentSocratiqueDesc' => get_string('chat:agent_socratique_desc', 'local_astusse'),
+        'starterLabel' => get_string('chat:suggestions_label', 'local_astusse'),
+        'starters' => [
+            get_string('chat:suggestion_explain_example', 'local_astusse'),
+            get_string('chat:suggestion_primary_foreign_key', 'local_astusse'),
+            get_string('chat:suggestion_quiz_revision', 'local_astusse'),
+            get_string('chat:suggestion_reformulate', 'local_astusse'),
+        ],
+        'copyLabel' => get_string('chat:copy_label', 'local_astusse'),
+        'copiedLabel' => get_string('chat:copied_label', 'local_astusse'),
+        'searchNoResults' => get_string('chat:search_no_results', 'local_astusse'),
     ];
 }
 
@@ -121,17 +142,29 @@ function local_astusse_get_chat_ui_strings(): array {
  * @return void
  */
 function local_astusse_render_chat_ui(array $config): void {
-    global $OUTPUT;
+    global $OUTPUT, $USER;
 
     $jsonflags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
     $isGlobal = ($config['pageMode'] === 'global');
 
+    // Initiales pour l'avatar du pied de sidebar (charte autoporteur).
+    $initials = core_text::strtoupper(
+        core_text::substr(trim((string)$USER->firstname), 0, 1) .
+        core_text::substr(trim((string)$USER->lastname), 0, 1)
+    );
+
     $templatecontext = [
         'pageMode'             => $config['pageMode'],
         'brandTitle'           => get_string('chat:brand_title', 'local_astusse'),
+        'brandSubtitle'        => get_string('chat:brand_subtitle', 'local_astusse'),
         'brandIntro'           => $isGlobal ? $config['strings']['globalIntro'] : $config['strings']['historyNotice'],
         'newSessionButton'     => $config['strings']['newSessionButton'],
+        'userFullname'         => fullname($USER),
+        'userInitials'         => $initials,
+        'themeToggleLabel'     => get_string('chat:theme_toggle', 'local_astusse'),
+        'openSidebarLabel'     => get_string('chat:open_sidebar', 'local_astusse'),
+        'closeSidebarLabel'    => get_string('chat:close_sidebar', 'local_astusse'),
         'conversationsLabel'   => $config['strings']['conversationsLabel'],
         'heading'              => $isGlobal ? $config['strings']['globalHeading'] : $config['strings']['heading'],
         'intro'                => $isGlobal ? $config['strings']['globalIntro'] : $config['strings']['intro'],
@@ -139,12 +172,19 @@ function local_astusse_render_chat_ui(array $config): void {
         'courseContextLabel'   => $config['strings']['courseContextLabel'],
         'referenceTrainerTitle' => $config['strings']['referenceTrainerTitle'],
         'courseLabel'          => $config['strings']['courseLabel'],
+        'coursePlaceholder'    => $config['strings']['coursePlaceholder'],
+        'coursesAvailableLabel' => get_string('chat:courses_available', 'local_astusse'),
         'agentLabel'           => get_string('chat:agent_label', 'local_astusse'),
         'agentExplicatif'      => $config['labels']['agents']['explicatif'],
         'agentSocratique'      => $config['labels']['agents']['socratique'],
         'messageLabel'         => $config['strings']['messageLabel'],
         'messagePlaceholder'   => $config['strings']['messagePlaceholder'],
         'inputHint'            => $config['strings']['inputHint'],
+        'kbdEnter'             => get_string('chat:key_enter', 'local_astusse'),
+        'kbdShift'             => get_string('chat:key_shift', 'local_astusse'),
+        'hintSend'             => get_string('chat:hint_send', 'local_astusse'),
+        'hintNewline'          => get_string('chat:hint_newline', 'local_astusse'),
+        'searchPlaceholder'    => get_string('chat:search_placeholder', 'local_astusse'),
         'sendButton'           => $config['strings']['sendButton'],
         'backUrl'              => $isGlobal
             ? (new moodle_url('/my/'))->out(false)
