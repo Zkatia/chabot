@@ -18,11 +18,9 @@
  * Upgrade steps for local_astusse.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Upgrade the local_astusse plugin.
@@ -124,6 +122,12 @@ function xmldb_local_astusse_upgrade(int $oldversion): bool {
         }
 
         upgrade_plugin_savepoint(true, 2026052101, 'local', 'astusse');
+    }
+
+    if ($oldversion < 2026061500) {
+        // Version 1.0.0 release: Privacy API provider, locally bundled third-party
+        // assets (Marked, Geist fonts) and boilerplate clean-up. No schema change.
+        upgrade_plugin_savepoint(true, 2026061500, 'local', 'astusse');
     }
 
     return true;

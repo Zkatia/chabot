@@ -18,10 +18,11 @@
  * Public JWKS endpoint for ASTUSSE JWT verification.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// phpcs:ignore moodle.Files.RequireLogin -- Public JWKS endpoint: must be reachable without authentication.
 require_once(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 

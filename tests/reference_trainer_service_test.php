@@ -10,6 +10,11 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace local_astusse;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -17,16 +22,15 @@ global $CFG;
 require_once($CFG->dirroot . '/local/astusse/lib.php');
 require_once($CFG->dirroot . '/local/astusse/classes/reference_trainer_service.php');
 
-use local_astusse\reference_trainer_service;
-
 /**
  * Tests for reference trainer service.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers      \local_astusse\reference_trainer_service
  */
-final class local_astusse_reference_trainer_service_test extends advanced_testcase {
+final class reference_trainer_service_test extends \advanced_testcase {
     public function test_get_reference_trainer_context_returns_valid_trainer_id(): void {
         global $DB;
 
@@ -36,7 +40,7 @@ final class local_astusse_reference_trainer_service_test extends advanced_testca
         $trainer = $this->getDataGenerator()->create_user();
         $admin = get_admin();
         $editingteacher = $DB->get_record('role', ['shortname' => 'editingteacher'], '*', MUST_EXIST);
-        role_assign($editingteacher->id, $trainer->id, context_course::instance($course->id));
+        role_assign($editingteacher->id, $trainer->id, \context_course::instance($course->id));
 
         reference_trainer_service::save_reference_trainer($course->id, (int)$trainer->id, (int)$admin->id);
 

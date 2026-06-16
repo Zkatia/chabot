@@ -3,18 +3,29 @@
  * until no non-final job remains, then stop.
  *
  * @module     local_astusse/jobs_page
- * @package    local_astusse
- * @copyright  2026
+ * @copyright  2026 Ingenium Digital Learning
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 define([], function() {
 
     var pollTimer = null;
 
+    /**
+     * Whether a job status is terminal (no further polling needed).
+     *
+     * @param {String} status Job status value.
+     * @return {Boolean} True when the status is final.
+     */
     function isFinal(status) {
         return status === 'succeeded' || status === 'failed';
     }
 
+    /**
+     * Escape a value for safe insertion into HTML.
+     *
+     * @param {*} value Raw value to escape.
+     * @return {String} HTML-escaped string.
+     */
     function escapeHtml(value) {
         if (value === null || value === undefined) {
             return '';
@@ -27,6 +38,12 @@ define([], function() {
             .replace(/'/g, '&#39;');
     }
 
+    /**
+     * Build the HTML for the details cell of a job row.
+     *
+     * @param {Object} job Job data object.
+     * @return {String} HTML markup for the details cell.
+     */
     function buildDetails(job) {
         var parts = [];
         if (job.backendtraceid) {
@@ -44,6 +61,13 @@ define([], function() {
         return parts.length ? parts.join('') : '&mdash;';
     }
 
+    /**
+     * Update a single job table row in place from fresh job data.
+     *
+     * @param {HTMLElement} row Table row element to update.
+     * @param {Object} job Job data object.
+     * @return {void}
+     */
     function updateRow(row, job) {
         var previousStatus = row.getAttribute('data-job-status');
         row.setAttribute('data-job-status', job.status);
@@ -71,6 +95,11 @@ define([], function() {
         }
     }
 
+    /**
+     * Collect the ids of all jobs that are not yet in a final state.
+     *
+     * @return {Array.<String>} List of pending job ids.
+     */
     function pendingIds() {
         var ids = [];
         var rows = document.querySelectorAll('tr[data-job-id]');
@@ -82,10 +111,20 @@ define([], function() {
         return ids;
     }
 
+    /**
+     * Whether any job on the page is still pending.
+     *
+     * @return {Boolean} True when at least one job is not final.
+     */
     function hasPendingJobs() {
         return pendingIds().length > 0;
     }
 
+    /**
+     * Stop the recurring poll timer if it is running.
+     *
+     * @return {void}
+     */
     function stopPolling() {
         if (pollTimer !== null) {
             clearInterval(pollTimer);
@@ -93,6 +132,12 @@ define([], function() {
         }
     }
 
+    /**
+     * Append the pending job ids as query parameters to the status endpoint.
+     *
+     * @param {String} endpoint Base status endpoint URL.
+     * @return {String} Endpoint URL with the pending ids appended.
+     */
     function buildPollUrl(endpoint) {
         var ids = pendingIds();
         if (ids.length === 0) {
@@ -105,6 +150,12 @@ define([], function() {
         return endpoint + sep + query;
     }
 
+    /**
+     * Fetch fresh job statuses and refresh the matching rows, stopping when done.
+     *
+     * @param {String} endpoint Base status endpoint URL.
+     * @return {void}
+     */
     function poll(endpoint) {
         var url = buildPollUrl(endpoint);
         fetch(url, {
@@ -136,6 +187,11 @@ define([], function() {
         });
     }
 
+    /**
+     * Auto-submit the jobs filter form when a filter control changes.
+     *
+     * @return {void}
+     */
     function initFilterAutoSubmit() {
         var form = document.getElementById('local-astusse-jobs-filters-form');
         if (!form) {

@@ -18,13 +18,11 @@
  * Login observer for the T2 spaced-repetition pop-up.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\observer;
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Arms a per-session flag at login. The flag is consumed by
@@ -32,7 +30,6 @@ defined('MOODLE_INTERNAL') || die();
  * page rendered after login (typically the dashboard /my).
  */
 class login_observer {
-
     /** @var string Session flag name. */
     public const SESSION_FLAG = 'local_astusse_check_review';
 

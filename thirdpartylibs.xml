@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<libraries>
+  <library>
+    <location>thirdparty/marked</location>
+    <name>Marked</name>
+    <description>A markdown parser and compiler used to render AI chat responses.</description>
+    <version>9.1.6</version>
+    <license>MIT</license>
+    <licenseversion></licenseversion>
+  </library>
+  <library>
+    <location>fonts</location>
+    <name>Geist and Geist Mono</name>
+    <description>Geist and Geist Mono typefaces (Vercel) bundled as woff2 for the ASTUSSE charter UI.</description>
+    <version>5</version>
+    <license>OFL-1.1</license>
+    <licenseversion>1.1</licenseversion>
+  </library>
+</libraries>

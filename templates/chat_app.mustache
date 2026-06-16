@@ -1,7 +1,79 @@
+{{!
+    @template local_astusse/chat_app
+
+    ASTUSSE self-contained chat application shell (sidebar, conversation area and
+    composer). All copy is passed in already localised; jsonConfig carries the
+    JSON bootstrap consumed by js/chat_app.js and is rendered unescaped.
+
+    Context variables required for this template:
+    * pageMode string - Page mode flag ("course" or "global").
+    * brandSubtitle string - Sidebar brand subtitle.
+    * newSessionButton string - Label of the new-session button.
+    * userFullname string - Current user's full name.
+    * userInitials string - Current user's initials for the avatar.
+    * themeToggleLabel string - Accessible label for the theme toggle.
+    * openSidebarLabel string - Accessible label to open the sidebar.
+    * closeSidebarLabel string - Accessible label to close the sidebar.
+    * conversationsLabel string - Heading for the conversation list.
+    * statusReady string - Ready status text.
+    * courseLabel string - Course selector label.
+    * coursePlaceholder string - Course selector placeholder.
+    * coursesAvailableLabel string - Label shown when courses are available.
+    * agentLabel string - Agent selector label.
+    * agentExplicatif string - Explanatory agent label.
+    * agentSocratique string - Socratic agent label.
+    * messageLabel string - Message field label.
+    * messagePlaceholder string - Message field placeholder.
+    * kbdEnter string - Enter key hint.
+    * kbdShift string - Shift key hint.
+    * hintSend string - Send hint text.
+    * hintNewline string - New-line hint text.
+    * searchPlaceholder string - Conversation search placeholder.
+    * sendButton string - Send button label.
+    * backUrl string - URL back to Moodle.
+    * backLabel string - Label of the back link.
+    * jsonConfig string - JSON bootstrap configuration (rendered unescaped).
+    * fontsCssUrl string - URL of the bundled Geist font stylesheet.
+    * markedUrl string - URL of the bundled Marked library.
+    * chatAppJsUrl string - URL of the chat application script.
+
+    Example context (json):
+    {
+        "pageMode": "course",
+        "brandSubtitle": "AI tutor",
+        "newSessionButton": "New conversation",
+        "userFullname": "Jane Doe",
+        "userInitials": "JD",
+        "themeToggleLabel": "Toggle theme",
+        "openSidebarLabel": "Open sidebar",
+        "closeSidebarLabel": "Close sidebar",
+        "conversationsLabel": "Conversations",
+        "statusReady": "Ready",
+        "courseLabel": "Course",
+        "coursePlaceholder": "Select a course",
+        "coursesAvailableLabel": "Courses available",
+        "agentLabel": "Tutor mode",
+        "agentExplicatif": "Explanatory",
+        "agentSocratique": "Socratic",
+        "messageLabel": "Your message",
+        "messagePlaceholder": "Ask a question",
+        "kbdEnter": "Enter",
+        "kbdShift": "Shift",
+        "hintSend": "to send",
+        "hintNewline": "for a new line",
+        "searchPlaceholder": "Search",
+        "sendButton": "Send",
+        "backUrl": "https://moodle.example.com/my/",
+        "backLabel": "Back to Moodle",
+        "jsonConfig": "{}",
+        "fontsCssUrl": "https://moodle.example.com/local/astusse/fonts/geist.css",
+        "markedUrl": "https://moodle.example.com/local/astusse/thirdparty/marked/marked.min.js",
+        "chatAppJsUrl": "https://moodle.example.com/local/astusse/js/chat_app.js"
+    }
+}}
 {{! Charte ASTUSSE « autoporteur » — Geist / Geist Mono, tokens clair+sombre }}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
+{{! Polices Geist embarquées localement (aucun appel externe). }}
+<link rel="stylesheet" href="{{fontsCssUrl}}">
 
 <div class="local-astusse-chatapp" id="local-astusse-chatapp" data-page-mode="{{pageMode}}" data-theme="light">
 
@@ -148,7 +220,7 @@
 </div>
 
 <script>window.AstusseChatConfig = {{{jsonConfig}}};</script>
-{{#markedCdnUrl}}
-<script src="{{markedCdnUrl}}"></script>
-{{/markedCdnUrl}}
+{{#markedUrl}}
+<script src="{{markedUrl}}"></script>
+{{/markedUrl}}
 <script src="{{chatAppJsUrl}}"></script>

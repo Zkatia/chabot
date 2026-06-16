@@ -2,18 +2,27 @@
  * Ingest page interactions: resource filters, select-all.
  *
  * @module     local_astusse/ingest_page
- * @package    local_astusse
- * @copyright  2026
+ * @copyright  2026 Ingenium Digital Learning
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 define([], function() {
     return {
+        /**
+         * Wire up the resource filter buttons and the select-all checkbox.
+         *
+         * @return {void}
+         */
         init: function() {
             initResourceFilters();
             initSelectAll();
         }
     };
 
+    /**
+     * Bind the modname filter buttons so they show/hide resource rows.
+     *
+     * @return {void}
+     */
     function initResourceFilters() {
         var filterBtns = document.querySelectorAll('.local-astusse-filter-btn');
         filterBtns.forEach(function(btn) {
@@ -36,6 +45,11 @@ define([], function() {
         });
     }
 
+    /**
+     * Bind the select-all checkbox so it toggles every visible resource row.
+     *
+     * @return {void}
+     */
     function initSelectAll() {
         var selectAll = document.getElementById('local-astusse-select-all');
         if (!selectAll) {

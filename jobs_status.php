@@ -19,7 +19,7 @@
  * for a given course of origin. Used by the jobs page polling script.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -50,11 +50,16 @@ if (!empty($ids)) {
     if (count($ids) > 100) {
         $ids = array_slice($ids, 0, 100);
     }
-    list($insql, $inparams) = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED, 'jid');
+    [$insql, $inparams] = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED, 'jid');
     $where = 'userid = :userid AND courseid = :courseid AND id ' . $insql;
     $params = array_merge(['userid' => (int)$USER->id, 'courseid' => $courseid], $inparams);
-    $jobs = $DB->get_records_select('local_astusse_ingest_jobs', $where, $params,
-        'timecreated DESC', $columns);
+    $jobs = $DB->get_records_select(
+        'local_astusse_ingest_jobs',
+        $where,
+        $params,
+        'timecreated DESC',
+        $columns
+    );
 } else {
     $jobs = $DB->get_records(
         'local_astusse_ingest_jobs',

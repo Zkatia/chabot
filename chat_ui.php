@@ -18,11 +18,9 @@
  * Shared chat UI helpers for local_astusse.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Build shared course metadata consumed by the chat UI.
@@ -115,7 +113,7 @@ function local_astusse_get_chat_ui_strings(): array {
         'referenceTrainerTitle' => get_string('chat:reference_trainer_title', 'local_astusse'),
         // Charte « autoporteur » : etat vide avec cartes d'agents + suggestions.
         'emptyGreeting' => get_string('chat:empty_greeting', 'local_astusse', $USER->firstname),
-        // %COURSE% est remplace cote JS par le nom du cours selectionne.
+        // Le marqueur %COURSE% est remplace cote JS par le nom du cours selectionne.
         'emptyCourseLoaded' => get_string('chat:empty_course_loaded', 'local_astusse', '%COURSE%'),
         'emptyCourseNeeded' => get_string('chat:empty_course_needed', 'local_astusse'),
         'agentExplicatifRole' => get_string('chat:agent_explicatif_role', 'local_astusse'),
@@ -132,6 +130,8 @@ function local_astusse_get_chat_ui_strings(): array {
         'copyLabel' => get_string('chat:copy_label', 'local_astusse'),
         'copiedLabel' => get_string('chat:copied_label', 'local_astusse'),
         'searchNoResults' => get_string('chat:search_no_results', 'local_astusse'),
+        'deleteConversationTitle' => get_string('chat:delete_conversation_title', 'local_astusse'),
+        'cancelLabel' => get_string('chat:cancel_label', 'local_astusse'),
     ];
 }
 
@@ -146,7 +146,7 @@ function local_astusse_render_chat_ui(array $config): void {
 
     $jsonflags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
-    $isGlobal = ($config['pageMode'] === 'global');
+    $isglobal = ($config['pageMode'] === 'global');
 
     // Initiales pour l'avatar du pied de sidebar (charte autoporteur).
     $initials = core_text::strtoupper(
@@ -158,7 +158,7 @@ function local_astusse_render_chat_ui(array $config): void {
         'pageMode'             => $config['pageMode'],
         'brandTitle'           => get_string('chat:brand_title', 'local_astusse'),
         'brandSubtitle'        => get_string('chat:brand_subtitle', 'local_astusse'),
-        'brandIntro'           => $isGlobal ? $config['strings']['globalIntro'] : $config['strings']['historyNotice'],
+        'brandIntro'           => $isglobal ? $config['strings']['globalIntro'] : $config['strings']['historyNotice'],
         'newSessionButton'     => $config['strings']['newSessionButton'],
         'userFullname'         => fullname($USER),
         'userInitials'         => $initials,
@@ -166,8 +166,8 @@ function local_astusse_render_chat_ui(array $config): void {
         'openSidebarLabel'     => get_string('chat:open_sidebar', 'local_astusse'),
         'closeSidebarLabel'    => get_string('chat:close_sidebar', 'local_astusse'),
         'conversationsLabel'   => $config['strings']['conversationsLabel'],
-        'heading'              => $isGlobal ? $config['strings']['globalHeading'] : $config['strings']['heading'],
-        'intro'                => $isGlobal ? $config['strings']['globalIntro'] : $config['strings']['intro'],
+        'heading'              => $isglobal ? $config['strings']['globalHeading'] : $config['strings']['heading'],
+        'intro'                => $isglobal ? $config['strings']['globalIntro'] : $config['strings']['intro'],
         'statusReady'          => $config['strings']['ready'],
         'courseContextLabel'   => $config['strings']['courseContextLabel'],
         'referenceTrainerTitle' => $config['strings']['referenceTrainerTitle'],
@@ -186,12 +186,13 @@ function local_astusse_render_chat_ui(array $config): void {
         'hintNewline'          => get_string('chat:hint_newline', 'local_astusse'),
         'searchPlaceholder'    => get_string('chat:search_placeholder', 'local_astusse'),
         'sendButton'           => $config['strings']['sendButton'],
-        'backUrl'              => $isGlobal
+        'backUrl'              => $isglobal
             ? (new moodle_url('/my/'))->out(false)
             : (new moodle_url('/course/view.php', ['id' => $config['selectedCourseId']]))->out(false),
         'backLabel'            => get_string('chat:back_to_moodle', 'local_astusse'),
         'jsonConfig'           => json_encode($config, $jsonflags),
-        'markedCdnUrl'         => 'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js',
+        'fontsCssUrl'          => (new moodle_url('/local/astusse/fonts/geist.css'))->out(false),
+        'markedUrl'            => (new moodle_url('/local/astusse/thirdparty/marked/marked.min.js'))->out(false),
         'chatAppJsUrl'         => (new moodle_url('/local/astusse/js/chat_app.js'))->out(false),
     ];
 

@@ -24,11 +24,25 @@
  * - User JWT generation with RS256
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Charge les assets de la charte ASTUSSE « autoporteur » sur une page :
+ * la feuille de styles du plugin + les polices Geist / Geist Mono.
+ *
+ * A appeler avant $OUTPUT->header(). Les pages doivent envelopper leur
+ * contenu dans un conteneur portant la classe « local-astusse-charte ».
+ *
+ * @param moodle_page $page
+ * @return void
+ */
+function local_astusse_require_charte_assets($page): void {
+    $page->requires->css(new moodle_url('/local/astusse/styles.css'));
+    // Polices Geist / Geist Mono embarquées localement (aucun appel externe).
+    $page->requires->css(new moodle_url('/local/astusse/fonts/geist.css'));
+}
 
 /**
  * Return key directory and create it if needed.
@@ -471,8 +485,10 @@ function local_astusse_scope_policy_settings_state_html(): string {
             $client = new \local_astusse\api_client();
             $snapshot = $client->get_scope_policy_snapshot_for_user($syncuser);
             $snapshotstatus = (int)($snapshot['status'] ?? 0);
-            if ($snapshotstatus >= 200 && $snapshotstatus < 300
-                    && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])) {
+            if (
+                $snapshotstatus >= 200 && $snapshotstatus < 300
+                    && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])
+            ) {
                 $json = $snapshot['body_json'];
                 $backendplatform = !empty($json['platformScopeAllowed']);
                 $backenddelegation = !empty($json['delegationEnabled']);
@@ -480,7 +496,8 @@ function local_astusse_scope_policy_settings_state_html(): string {
             }
         }
     } catch (\Throwable $e) {
-        // Backend unreachable, handled below.
+        // Backend unreachable; treat as not fetched and handle below.
+        $backendfetchok = false;
     }
 
     // If backend state differs from local, force a sync POST then re-read.
@@ -492,15 +509,18 @@ function local_astusse_scope_policy_settings_state_html(): string {
             if ($syncuser !== null) {
                 $snapshot = $client->get_scope_policy_snapshot_for_user($syncuser);
                 $snapshotstatus = (int)($snapshot['status'] ?? 0);
-                if ($snapshotstatus >= 200 && $snapshotstatus < 300
-                        && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])) {
+                if (
+                    $snapshotstatus >= 200 && $snapshotstatus < 300
+                        && !empty($snapshot['body_json']) && is_array($snapshot['body_json'])
+                ) {
                     $json = $snapshot['body_json'];
                     $backendplatform = !empty($json['platformScopeAllowed']);
                     $backenddelegation = !empty($json['delegationEnabled']);
                 }
             }
         } catch (\Throwable $e) {
-            // Ignore re-read failure.
+            // Ignore re-read failure: the previously read state remains authoritative.
+            debugging('local_astusse: scope policy re-read failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
     }
 
@@ -586,7 +606,10 @@ function local_astusse_scope_policy_settings_state_html(): string {
  */
 function local_astusse_get_course_ingestable_resources(int $courseid): array {
     $modinfo = get_fast_modinfo($courseid);
-    $supportedtypes = ['resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'];
+    $supportedtypes = [
+        'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book',
+        'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder',
+    ];
     $resources = [];
 
     foreach ($modinfo->get_cms() as $cminfo) {
@@ -727,8 +750,13 @@ function local_astusse_is_public_host(string $host): bool {
     foreach ($ips as $ip) {
         // FILTER_FLAG_NO_PRIV_RANGE excludes RFC1918 (10/8, 172.16/12, 192.168/16).
         // FILTER_FLAG_NO_RES_RANGE excludes loopback, link-local, etc.
-        if (filter_var($ip, FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        if (
+            filter_var(
+                $ip,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) === false
+        ) {
             return false;
         }
     }
@@ -779,7 +807,7 @@ function local_astusse_fetch_external_url_text(string $url): ?string {
         $len = strlen($chunk);
         if (strlen($body) + $len > $maxbytes) {
             $oversized = true;
-            return 0; // abort transfer
+            return 0; // Abort transfer.
         }
         $body .= $chunk;
         return $len;
@@ -790,9 +818,9 @@ function local_astusse_fetch_external_url_text(string $url): ?string {
     $contenttype = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
     curl_close($ch);
 
-    if ($oversized) {
-        // We aborted on purpose mid-stream; what we got may still be useful.
-    } else if ($ok === false || $status < 200 || $status >= 300) {
+    // When oversized we aborted on purpose mid-stream; what we already buffered may
+    // still be useful, so we only bail out on a genuine transfer or HTTP error.
+    if (!$oversized && ($ok === false || $status < 200 || $status >= 300)) {
         return null;
     }
     if ($body === '') {
@@ -961,8 +989,14 @@ function local_astusse_extract_h5p_content(stdClass $cm): ?array {
 
     $context = context_module::instance($cm->id);
     $fs = get_file_storage();
-    $files = $fs->get_area_files($context->id, 'mod_h5pactivity', 'package', 0,
-        'sortorder DESC, id ASC', false);
+    $files = $fs->get_area_files(
+        $context->id,
+        'mod_h5pactivity',
+        'package',
+        0,
+        'sortorder DESC, id ASC',
+        false
+    );
     $h5pfile = reset($files);
     if (!$h5pfile) {
         return null;
@@ -1096,14 +1130,17 @@ function local_astusse_extract_book_content(stdClass $cm): ?array {
     global $DB;
 
     $book = $DB->get_record('book', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
-    $chapters = $DB->get_records('book_chapters',
+    $chapters = $DB->get_records(
+        'book_chapters',
         ['bookid' => $book->id, 'hidden' => 0],
         'pagenum ASC',
-        'id, title, content, contentformat, subchapter');
+        'id, title, content, contentformat, subchapter'
+    );
 
     if (empty($chapters)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('book:empty_no_chapters', 'local_astusse'));
+            get_string('book:empty_no_chapters', 'local_astusse')
+        );
     }
 
     $bodyparts = [];
@@ -1149,14 +1186,17 @@ function local_astusse_extract_glossary_content(stdClass $cm): ?array {
     global $DB;
 
     $glossary = $DB->get_record('glossary', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
-    $entries = $DB->get_records('glossary_entries',
+    $entries = $DB->get_records(
+        'glossary_entries',
         ['glossaryid' => $glossary->id, 'approved' => 1],
         'concept ASC',
-        'id, concept, definition, definitionformat');
+        'id, concept, definition, definitionformat'
+    );
 
     if (empty($entries)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('glossary:empty_no_entries', 'local_astusse'));
+            get_string('glossary:empty_no_entries', 'local_astusse')
+        );
     }
 
     $bodyparts = [];
@@ -1208,14 +1248,17 @@ function local_astusse_extract_lesson_content(stdClass $cm): ?array {
     global $DB;
 
     $lesson = $DB->get_record('lesson', ['id' => $cm->instance], 'id, name, intro, introformat', MUST_EXIST);
-    $allpages = $DB->get_records('lesson_pages',
+    $allpages = $DB->get_records(
+        'lesson_pages',
         ['lessonid' => $lesson->id],
         'id ASC',
-        'id, qtype, title, contents, contentsformat, prevpageid, nextpageid');
+        'id, qtype, title, contents, contentsformat, prevpageid, nextpageid'
+    );
 
     if (empty($allpages)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('lesson:empty_no_pages', 'local_astusse'));
+            get_string('lesson:empty_no_pages', 'local_astusse')
+        );
     }
 
     $bypage = [];
@@ -1263,17 +1306,22 @@ function local_astusse_extract_lesson_content(stdClass $cm): ?array {
         if (!empty($page->contents)) {
             $bodyparts[] = format_text($page->contents, $page->contentsformat ?? FORMAT_HTML, ['noclean' => true]);
         }
-        $answers = $DB->get_records('lesson_answers',
+        $answers = $DB->get_records(
+            'lesson_answers',
             ['lessonid' => $lesson->id, 'pageid' => $page->id],
             'id ASC',
-            'id, answer, answerformat, score');
+            'id, answer, answerformat, score'
+        );
         $correct = [];
         foreach ($answers as $ans) {
             if ((int)$ans->score <= 0 || empty($ans->answer)) {
                 continue;
             }
-            $text = trim(preg_replace('/\s+/', ' ',
-                strip_tags(format_text($ans->answer, $ans->answerformat ?? FORMAT_HTML, ['noclean' => true]))));
+            $text = trim(preg_replace(
+                '/\s+/',
+                ' ',
+                strip_tags(format_text($ans->answer, $ans->answerformat ?? FORMAT_HTML, ['noclean' => true]))
+            ));
             if ($text !== '') {
                 $correct[] = $text;
             }
@@ -1338,7 +1386,8 @@ function local_astusse_extract_quiz_content(stdClass $cm): ?array {
     $rows = $DB->get_records_sql($sql, ['quizid' => $quiz->id]);
     if (empty($rows)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('quiz:empty_no_questions', 'local_astusse'));
+            get_string('quiz:empty_no_questions', 'local_astusse')
+        );
     }
 
     // Deduplicate by slot (when version IS NULL we may get several rows per slot;
@@ -1374,16 +1423,21 @@ function local_astusse_extract_quiz_content(stdClass $cm): ?array {
 
         $correct = [];
 
-        $answers = $DB->get_records('question_answers',
+        $answers = $DB->get_records(
+            'question_answers',
             ['question' => $row->questionid],
             'id ASC',
-            'id, answer, answerformat, fraction');
+            'id, answer, answerformat, fraction'
+        );
         foreach ($answers as $ans) {
             if ((float)$ans->fraction <= 0) {
                 continue;
             }
-            $text = trim(preg_replace('/\s+/', ' ',
-                strip_tags(format_text($ans->answer ?? '', $ans->answerformat ?? FORMAT_HTML, ['noclean' => true]))));
+            $text = trim(preg_replace(
+                '/\s+/',
+                ' ',
+                strip_tags(format_text($ans->answer ?? '', $ans->answerformat ?? FORMAT_HTML, ['noclean' => true]))
+            ));
             if ($text !== '') {
                 $correct[] = $text;
             }
@@ -1391,13 +1445,18 @@ function local_astusse_extract_quiz_content(stdClass $cm): ?array {
 
         // Match-type questions store pairs in qtype_match_subquestions.
         if ($row->qtype === 'match') {
-            $matches = $DB->get_records('qtype_match_subquestions',
+            $matches = $DB->get_records(
+                'qtype_match_subquestions',
                 ['questionid' => $row->questionid],
                 'id ASC',
-                'id, questiontext, questiontextformat, answertext');
+                'id, questiontext, questiontextformat, answertext'
+            );
             foreach ($matches as $m) {
-                $qpart = trim(preg_replace('/\s+/', ' ',
-                    strip_tags(format_text($m->questiontext ?? '', $m->questiontextformat ?? FORMAT_HTML, ['noclean' => true]))));
+                $qpart = trim(preg_replace(
+                    '/\s+/',
+                    ' ',
+                    strip_tags(format_text($m->questiontext ?? '', $m->questiontextformat ?? FORMAT_HTML, ['noclean' => true]))
+                ));
                 $apart = trim((string)$m->answertext);
                 if ($qpart !== '' && $apart !== '') {
                     $correct[] = $qpart . ' → ' . $apart;
@@ -1420,13 +1479,15 @@ function local_astusse_extract_quiz_content(stdClass $cm): ?array {
 
     if ($usablequestions === 0) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('quiz:empty_no_usable_questions', 'local_astusse'));
+            get_string('quiz:empty_no_usable_questions', 'local_astusse')
+        );
     }
 
     $body = implode("\n", $bodyparts);
     if (trim(strip_tags($body)) === '') {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('quiz:empty_no_usable_questions', 'local_astusse'));
+            get_string('quiz:empty_no_usable_questions', 'local_astusse')
+        );
     }
 
     $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
@@ -1452,8 +1513,12 @@ function local_astusse_extract_quiz_content(stdClass $cm): ?array {
 function local_astusse_extract_assign_content(stdClass $cm): ?array {
     global $DB;
 
-    $assign = $DB->get_record('assign', ['id' => $cm->instance],
-        'id, name, intro, introformat, activity, activityformat', MUST_EXIST);
+    $assign = $DB->get_record(
+        'assign',
+        ['id' => $cm->instance],
+        'id, name, intro, introformat, activity, activityformat',
+        MUST_EXIST
+    );
 
     $bodyparts = [];
     if (!empty($assign->intro)) {
@@ -1471,7 +1536,8 @@ function local_astusse_extract_assign_content(stdClass $cm): ?array {
 
     if (empty($bodyparts)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('assign:empty_no_instructions', 'local_astusse'));
+            get_string('assign:empty_no_instructions', 'local_astusse')
+        );
     }
 
     $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
@@ -1511,7 +1577,8 @@ function local_astusse_extract_wiki_content(stdClass $cm): ?array {
 
     if (empty($pages)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('wiki:empty_no_pages', 'local_astusse'));
+            get_string('wiki:empty_no_pages', 'local_astusse')
+        );
     }
 
     $bodyparts = [];
@@ -1534,7 +1601,8 @@ function local_astusse_extract_wiki_content(stdClass $cm): ?array {
     $body = implode("\n", $bodyparts);
     if (trim(strip_tags($body)) === '') {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('wiki:empty_no_pages', 'local_astusse'));
+            get_string('wiki:empty_no_pages', 'local_astusse')
+        );
     }
 
     $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . s($cm->name)
@@ -1591,7 +1659,8 @@ function local_astusse_list_folder_files(int $cmid): array {
 function local_astusse_extract_folder_content(stdClass $cm, ?\stdClass $job = null): ?array {
     if ($job === null || empty($job->fileareaitemid)) {
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('folder:missing_fileid', 'local_astusse'));
+            get_string('folder:missing_fileid', 'local_astusse')
+        );
     }
 
     $fileid = (int)$job->fileareaitemid;
@@ -1624,7 +1693,8 @@ function local_astusse_extract_folder_content(stdClass $cm, ?\stdClass $job = nu
     if ($file === null) {
         $detail = $expectedname !== '' ? $expectedname : ('id=' . $fileid);
         throw new \local_astusse\exception\permanent_extraction_exception(
-            get_string('folder:file_missing', 'local_astusse', $detail));
+            get_string('folder:file_missing', 'local_astusse', $detail)
+        );
     }
 
     $filename = $file->get_filename();
@@ -1660,10 +1730,10 @@ function local_astusse_extract_scorm_content(stdClass $cm): ?array {
 
     // First pass: detect Articulate Rise base64 payload.
     // Three known patterns across Rise versions:
-    //   1. und.js (old Rise):     __resolveJsonp("course:und","<base64>")
-    //   2. index.html (old Rise): window.courseData = "<base64>"
-    //   3. index.html (Rise 360): deserialize("<base64>") inside an inline <script>
-    //      (the script also defines `function deserialize(str){ atob; JSON.parse }`)
+    // 1. und.js (old Rise):     __resolveJsonp("course:und","<base64>")
+    // 2. index.html (old Rise): window.courseData = "<base64>"
+    // 3. index.html (Rise 360): deserialize("<base64>") inside an inline <script>
+    // (the script also defines `function deserialize(str){ atob; JSON.parse }`)
     // If found, use only that content — it contains the entire course text.
     foreach ($files as $file) {
         $raw = $file->get_content();
@@ -1697,7 +1767,7 @@ function local_astusse_extract_scorm_content(stdClass $cm): ?array {
 
     // Second pass: detect Articulate Storyline.
     // Storyline packages contain `.js` files using the pattern:
-    //   window.globalProvideData('<key>', '<JSON>')
+    // window.globalProvideData('<key>', '<JSON>')
     // Only the 'slide' and 'data' blobs hold pedagogical text; 'frame' and
     // 'paths' carry the player UI strings and SVG paths, which we must skip.
     $storylinekeys = ['slide', 'data'];
@@ -1711,8 +1781,13 @@ function local_astusse_extract_scorm_content(stdClass $cm): ?array {
         if (strpos($raw, 'globalProvideData') === false) {
             continue;
         }
-        if (!preg_match_all("/globalProvideData\s*\(\s*'([^']+)'\s*,\s*'(.*?)'\s*\)/s",
-                $raw, $gpdmatches)) {
+        if (
+            !preg_match_all(
+                "/globalProvideData\s*\(\s*'([^']+)'\s*,\s*'(.*?)'\s*\)/s",
+                $raw,
+                $gpdmatches
+            )
+        ) {
             continue;
         }
         foreach ($gpdmatches[1] as $idx => $gpdkey) {
@@ -1820,8 +1895,8 @@ function local_astusse_extract_scorm_content(stdClass $cm): ?array {
     }
 
     // If the generic pass found nothing, try two additional fallbacks:
-    //   (a) AICC packages (.crs / .au / .des files, no HTML)
-    //   (b) SCORM-proxy detection (local .html loading a remote <script src>)
+    // (a) AICC packages (.crs / .au / .des files, no HTML)
+    // (b) SCORM-proxy detection (local .html loading a remote <script src>).
     if (empty($textparts)) {
         $aicc = local_astusse_extract_aicc_content($files);
         if (!empty($aicc['texts'])) {
@@ -1829,8 +1904,11 @@ function local_astusse_extract_scorm_content(stdClass $cm): ?array {
             // but if the .au points to an external URL the index will be thin.
             $textparts = $aicc['texts'];
             if ($aicc['remotedomain'] !== null) {
-                $textparts[] = get_string('ingest:aicc_remote_hint', 'local_astusse',
-                    $aicc['remotedomain']);
+                $textparts[] = get_string(
+                    'ingest:aicc_remote_hint',
+                    'local_astusse',
+                    $aicc['remotedomain']
+                );
             }
         } else {
             $remotedomain = null;
@@ -1845,8 +1923,13 @@ function local_astusse_extract_scorm_content(stdClass $cm): ?array {
                         continue;
                     }
                     $raw = $file->get_content();
-                    if (preg_match('#<script[^>]+src\s*=\s*["\']https?://([^/"\'\s]+)#i',
-                            $raw, $srcmatch)) {
+                    if (
+                        preg_match(
+                            '#<script[^>]+src\s*=\s*["\']https?://([^/"\'\s]+)#i',
+                            $raw,
+                            $srcmatch
+                        )
+                    ) {
                         $remotedomain = $srcmatch[1];
                         break;
                     }
@@ -1972,8 +2055,9 @@ function local_astusse_extract_text_from_json(string $json): string {
  * Filters out: short strings, URLs, hex sequences, base64, coordinates,
  * file paths, CSS values, and other non-content data.
  *
- * @param mixed $data
- * @param array $texts
+ * @param mixed $data Decoded JSON value (scalar, array or object) to walk.
+ * @param array $texts Accumulator that collected strings are appended to, by reference.
+ * @param string|null $key Key of the current value within its parent, used to skip non-content fields.
  * @return void
  */
 function local_astusse_collect_json_texts($data, array &$texts, ?string $key = null): void {
@@ -2336,7 +2420,7 @@ function local_astusse_get_chat_accessible_courses(stdClass $user): array {
         ];
     }
 
-    uasort($available, static function(array $left, array $right): int {
+    uasort($available, static function (array $left, array $right): int {
         return strnatcasecmp($left['fullname'], $right['fullname']);
     });
 
@@ -2449,11 +2533,21 @@ function local_astusse_store_ingest_upload(\stored_file $draftfile, int $jobid, 
     $usercontext = context_user::instance($userid);
     $fs = get_file_storage();
 
-    $existing = $fs->get_area_files($usercontext->id, 'local_astusse',
-        \local_astusse\task\ingest_document_task::FILEAREA, $jobid, 'id', false);
+    $existing = $fs->get_area_files(
+        $usercontext->id,
+        'local_astusse',
+        \local_astusse\task\ingest_document_task::FILEAREA,
+        $jobid,
+        'id',
+        false
+    );
     if (!empty($existing)) {
-        $fs->delete_area_files($usercontext->id, 'local_astusse',
-            \local_astusse\task\ingest_document_task::FILEAREA, $jobid);
+        $fs->delete_area_files(
+            $usercontext->id,
+            'local_astusse',
+            \local_astusse\task\ingest_document_task::FILEAREA,
+            $jobid
+        );
     }
 
     $filerecord = (object)[
@@ -2542,9 +2636,9 @@ function local_astusse_before_footer(): string {
     }
 
     // T5 (bypass post-snooze) : on injecte le JS dans deux cas :
-    //   (a) 1ere page apres login (flag pose par login_observer, comportement T2 historique)
-    //   (b) une snooze "Plus tard" posee aujourd'hui a expire — le JS doit pouvoir
-    //       redemander un pop-up sans necessiter logout/login.
+    // (a) 1ere page apres login (flag pose par login_observer, comportement T2 historique)
+    // (b) une snooze "Plus tard" posee aujourd'hui a expire — le JS doit pouvoir
+    // redemander un pop-up sans necessiter logout/login.
     //
     // La pref local_astusse_review_snooze_until est posee par review_snooze.php au
     // clic Plus tard (timestamp UNIX = now + 4h). On l'efface quand l'injection est
@@ -2610,7 +2704,7 @@ function local_astusse_build_quiz_tutor_draft(\stdClass $user, string $quizsessi
         $client = new \local_astusse\api_client();
         $result = $client->fetch_quiz_context_for_user($user, $quizsessionid);
     } catch (\Throwable $e) {
-        error_log('local_astusse build_quiz_tutor_draft: ' . $e->getMessage());
+        debugging('local_astusse build_quiz_tutor_draft: ' . $e->getMessage(), DEBUG_DEVELOPER);
         return '';
     }
     $status = (int)($result['status'] ?? 0);
@@ -2652,8 +2746,11 @@ function local_astusse_build_quiz_tutor_draft(\stdClass $user, string $quizsessi
         }
         $lines[] = $i . '. ' . $prompt;
         if ($useranswer !== '') {
-            $lines[] = '   ' . get_string('tutor:draft_my_answer', 'local_astusse',
-                (object)['answer' => $useranswer]);
+            $lines[] = '   ' . get_string(
+                'tutor:draft_my_answer',
+                'local_astusse',
+                (object)['answer' => $useranswer]
+            );
         }
         $lines[] = '   ' . $verdict;
         $lines[] = '';
@@ -2672,39 +2769,53 @@ function local_astusse_build_quiz_tutor_draft(\stdClass $user, string $quizsessi
  * @return array<int, array{name:string, course:string, url:string}>
  */
 function local_astusse_resolve_cmid_titles(array $cmids): array {
-    global $DB;
+    global $DB, $USER;
 
-    $cmids = array_values(array_unique(array_filter(array_map('intval', $cmids), function ($v) { return $v > 0; })));
+    $cmids = array_values(array_unique(array_filter(array_map('intval', $cmids), function ($v) {
+        return $v > 0;
+    })));
     if (empty($cmids)) {
         return [];
     }
 
+    // Map each cmid to its course in a single query, so we can load course
+    // modinfo (which carries the per-user visibility decision) per course.
     [$insql, $params] = $DB->get_in_or_equal($cmids, SQL_PARAMS_NAMED);
-    $records = $DB->get_records_sql(
-        'SELECT cm.id AS cmid, cm.course, cm.module, cm.instance, m.name AS modname, c.fullname AS coursename
+    $coursemap = $DB->get_records_sql(
+        'SELECT cm.id AS cmid, cm.course
          FROM {course_modules} cm
-         JOIN {modules} m ON m.id = cm.module
-         JOIN {course} c ON c.id = cm.course
          WHERE cm.id ' . $insql,
         $params
     );
 
     $out = [];
-    foreach ($records as $r) {
-        $modname = (string)$r->modname;
-        // Recupere le nom de l'instance (title du module).
-        $instance = $DB->get_record($modname, ['id' => $r->instance], 'id, name');
-        $name = $instance && isset($instance->name) ? (string)$instance->name : ('Resource #' . $r->cmid);
-        $url = (new moodle_url('/mod/' . $modname . '/view.php', ['id' => $r->cmid]))->out(false);
-        $courseurl = (new moodle_url('/course/view.php', ['id' => (int)$r->course]))->out(false);
-        $out[(int)$r->cmid] = [
-            'name'      => $name,
-            'course'    => (string)$r->coursename,
-            'url'       => $url,
-            'courseUrl' => $courseurl,
+    $modinfocache = [];
+    foreach ($coursemap as $row) {
+        $cmid = (int)$row->cmid;
+        $courseid = (int)$row->course;
+        try {
+            if (!isset($modinfocache[$courseid])) {
+                $modinfocache[$courseid] = get_fast_modinfo($courseid, $USER->id);
+            }
+            $cm = $modinfocache[$courseid]->get_cm($cmid);
+        } catch (\Throwable $e) {
+            // Course or module gone: leave it to the fallback below.
+            continue;
+        }
+        // Never expose a resource the current user is not allowed to see
+        // (hidden module, availability restriction, no access to the course).
+        if (!$cm->uservisible) {
+            continue;
+        }
+        $course = $modinfocache[$courseid]->get_course();
+        $out[$cmid] = [
+            'name'      => format_string($cm->name),
+            'course'    => format_string($course->fullname),
+            'url'       => $cm->url ? $cm->url->out(false) : '',
+            'courseUrl' => (new moodle_url('/course/view.php', ['id' => $courseid]))->out(false),
         ];
     }
-    // Fallback pour les cmids non resolus (module supprime ?).
+    // Fallback for unresolved or non-visible cmids: keep an opaque placeholder.
     foreach ($cmids as $cmid) {
         if (!isset($out[$cmid])) {
             $out[$cmid] = ['name' => 'Resource #' . $cmid, 'course' => '', 'url' => '', 'courseUrl' => ''];

@@ -10,6 +10,11 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace local_astusse;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -20,10 +25,11 @@ require_once($CFG->dirroot . '/local/astusse/lib.php');
  * Tests for local_astusse lib helpers.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers      ::local_astusse_get_scope_sync_user
  */
-final class local_astusse_lib_test extends advanced_testcase {
+final class lib_test extends \advanced_testcase {
     public function test_get_scope_sync_user_prefers_current_site_admin(): void {
         $this->resetAfterTest(true);
 

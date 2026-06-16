@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/astusse/db" VERSION="2026041601" COMMENT="XMLDB file for local_astusse"
+<XMLDB PATH="local/astusse/db" VERSION="2026061500" COMMENT="XMLDB file for local_astusse"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
   <TABLES>

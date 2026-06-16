@@ -18,7 +18,7 @@
  * CLI script to generate ASTUSSE RSA keys.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

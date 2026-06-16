@@ -94,9 +94,27 @@
         }
     }
 
+    // Charge les polices Geist / Geist Mono de la charte « autoporteur » une seule
+    // fois. Le pop-up apparait sur des pages quelconques (ex : /my) ou ces polices
+    // ne sont pas chargees ; on injecte le <link> a la volee vers la feuille
+    // embarquee dans le plugin (aucun appel externe ; degrade proprement vers
+    // system-ui si le fichier est indisponible).
+    function ensureFonts() {
+        if (document.getElementById('local-astusse-charte-fonts')) { return; }
+        var wwwroot = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : '';
+        var link = document.createElement('link');
+        link.id = 'local-astusse-charte-fonts';
+        link.rel = 'stylesheet';
+        link.href = wwwroot + '/local/astusse/fonts/geist.css';
+        document.head.appendChild(link);
+    }
+
     function ensureOverlay() {
         if (overlay) { return; }
-        overlay = el('div', 'local-astusse-popup-overlay');
+        ensureFonts();
+        // Classe « local-astusse-charte » : reutilise les tokens + styles de boutons
+        // de la charte definis dans styles.css.
+        overlay = el('div', 'local-astusse-charte local-astusse-popup-overlay');
         card = el('div', 'local-astusse-popup-card');
         overlay.appendChild(card);
         overlay.addEventListener('click', function(ev) {
@@ -108,6 +126,52 @@
             }
         });
         document.body.appendChild(overlay);
+    }
+
+    // Modale de confirmation charte (remplace window.confirm). Centree, au-dessus
+    // du popup. onConfirm() est appele uniquement si l'apprenant confirme.
+    // La modale est ajoutee dans l'overlay du popup (classe local-astusse-charte)
+    // pour heriter des tokens de la charte.
+    function showConfirm(opts, onConfirm) {
+        opts = opts || {};
+        var host = overlay || document.body;
+        var mOverlay = el('div', 'la-modal-overlay');
+        var card = el('div', 'la-modal-card');
+        card.setAttribute('role', 'alertdialog');
+        card.setAttribute('aria-modal', 'true');
+        var titleEl = el('h2', 'la-modal-title', opts.title || '');
+        var msgEl = el('p', 'la-modal-message', opts.message || '');
+        var actions = el('div', 'la-modal-actions');
+        var cancelBtn = el('button', 'la-modal-btn la-modal-cancel', opts.cancelLabel || 'Annuler');
+        cancelBtn.setAttribute('type', 'button');
+        var confirmBtn = el('button', 'la-modal-btn la-modal-confirm' + (opts.danger ? ' is-danger' : ''),
+            opts.confirmLabel || 'OK');
+        confirmBtn.setAttribute('type', 'button');
+
+        function closeModal() {
+            if (mOverlay.parentNode) { mOverlay.parentNode.removeChild(mOverlay); }
+            document.removeEventListener('keydown', onKey, true);
+        }
+        function onKey(ev) {
+            if (ev.key === 'Escape') { ev.preventDefault(); closeModal(); }
+            else if (ev.key === 'Enter') { ev.preventDefault(); closeModal(); onConfirm(); }
+        }
+        cancelBtn.addEventListener('click', function() { closeModal(); });
+        confirmBtn.addEventListener('click', function() { closeModal(); onConfirm(); });
+        mOverlay.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+            if (ev.target === mOverlay) { closeModal(); }
+        });
+        document.addEventListener('keydown', onKey, true);
+
+        actions.appendChild(cancelBtn);
+        actions.appendChild(confirmBtn);
+        card.appendChild(titleEl);
+        card.appendChild(msgEl);
+        card.appendChild(actions);
+        mOverlay.appendChild(card);
+        host.appendChild(mOverlay);
+        confirmBtn.focus();
     }
 
     function renderHeader(title, allowCross) {
@@ -164,10 +228,16 @@
         // cmids listes par le serveur. Si l'apprenant confirme, on appelle l'API
         // et on ferme. La capture des consultations continue (invariant T5).
         closeBtn.addEventListener('click', function() {
-            if (window.confirm(s('cancelConfirm'))) {
+            showConfirm({
+                title: s('cancelTitle'),
+                message: s('cancelConfirm'),
+                confirmLabel: s('cancelConfirmBtn'),
+                cancelLabel: s('cancelDismissBtn'),
+                danger: true
+            }, function() {
                 postCancel(data.cmids || []);
                 close();
-            }
+            });
         });
 
         launch.addEventListener('click', function() {

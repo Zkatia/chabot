@@ -18,18 +18,17 @@
  * Minimal ASTUSSE gateway API client.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * API client to validate Moodle -> JWT -> Gateway chain.
  */
 class api_client {
+    /** @var string HTTP header carrying the requested chat-history retention TTL. */
     private const CHAT_HISTORY_TTL_HEADER = 'X-Chat-History-Ttl';
 
     /** @var string */
@@ -325,6 +324,8 @@ class api_client {
      * @param string $filepath Temporary local file path.
      * @param string $filename Original filename.
      * @param string $mimetype File mime type.
+     * @param int|null $sourcecmid Optional Moodle cmid of the source module.
+     * @param string|null $sourcetype Optional Moodle module type ('page','resource',...).
      * @return array
      */
     public function ingest_document_for_user(
@@ -424,6 +425,7 @@ class api_client {
      * @param \stdClass $user        Apprenant.
      * @param int       $recencydays Recency window for the amorçage criterion.
      * @param int       $mineligible Minimum eligible resources to trigger the pop-up.
+     * @param int       $maxresources Maximum number of resources to return.
      * @param int       $timeoutseconds HTTP timeout (defaults to 2s, matches UX budget).
      * @return array
      */
@@ -467,8 +469,13 @@ class api_client {
             throw new \Exception('Unable to generate JWT token for current user.');
         }
         $payload = ['quizSessionId' => $quizsessionid];
-        return $this->request_json('POST', '/api/review/generate_interleaved_quiz',
-            $token, $payload, $timeoutseconds);
+        return $this->request_json(
+            'POST',
+            '/api/review/generate_interleaved_quiz',
+            $token,
+            $payload,
+            $timeoutseconds
+        );
     }
 
     /**
@@ -504,8 +511,13 @@ class api_client {
             'userAnswerText'   => $useranswertext,
             'responseTimeMs'   => $responsetimems,
         ];
-        return $this->request_json('POST', '/api/review/record_quiz_answer',
-            $token, $payload, $timeoutseconds);
+        return $this->request_json(
+            'POST',
+            '/api/review/record_quiz_answer',
+            $token,
+            $payload,
+            $timeoutseconds
+        );
     }
 
     /**
@@ -549,8 +561,13 @@ class api_client {
             throw new \Exception('Unable to generate JWT token for current user.');
         }
         $payload = ['quizSessionId' => $quizsessionid];
-        return $this->request_json('POST', '/api/review/record_quiz_result',
-            $token, $payload, $timeoutseconds);
+        return $this->request_json(
+            'POST',
+            '/api/review/record_quiz_result',
+            $token,
+            $payload,
+            $timeoutseconds
+        );
     }
 
     /**
@@ -610,14 +627,13 @@ class api_client {
         return $this->request_json('GET', '/api/admin/scope/policy', $token, null);
     }
 
-    // ============================================================
-    // T5 — Controle apprenant (snooze, opt-out, cancel/reactivate)
-    // ============================================================
+    // T5 — Controle apprenant (snooze, opt-out, cancel/reactivate).
 
     /**
      * Snooze pop-ups for the default duration (4h server-side).
      *
      * @param \stdClass $user
+     * @param int $timeoutseconds HTTP timeout in seconds.
      * @return array
      */
     public function snooze_for_user(\stdClass $user, int $timeoutseconds = 5): array {
@@ -634,6 +650,7 @@ class api_client {
      *
      * @param \stdClass $user
      * @param int[]     $cmids
+     * @param int       $timeoutseconds HTTP timeout in seconds.
      * @return array
      */
     public function cancel_resources_for_user(\stdClass $user, array $cmids, int $timeoutseconds = 5): array {
@@ -650,6 +667,7 @@ class api_client {
      *
      * @param \stdClass $user
      * @param bool      $enabled
+     * @param int       $timeoutseconds HTTP timeout in seconds.
      * @return array
      */
     public function set_global_state_for_user(\stdClass $user, bool $enabled, int $timeoutseconds = 5): array {
@@ -657,8 +675,13 @@ class api_client {
         if ($token === false) {
             throw new \Exception('Unable to generate JWT token for current user.');
         }
-        return $this->request_json('POST', '/api/review/set_global_state', $token,
-            ['enabled' => $enabled], $timeoutseconds);
+        return $this->request_json(
+            'POST',
+            '/api/review/set_global_state',
+            $token,
+            ['enabled' => $enabled],
+            $timeoutseconds
+        );
     }
 
     /**
@@ -666,6 +689,7 @@ class api_client {
      *
      * @param \stdClass $user
      * @param int       $cmid
+     * @param int       $timeoutseconds HTTP timeout in seconds.
      * @return array
      */
     public function reactivate_resource_for_user(\stdClass $user, int $cmid, int $timeoutseconds = 5): array {
@@ -673,14 +697,20 @@ class api_client {
         if ($token === false) {
             throw new \Exception('Unable to generate JWT token for current user.');
         }
-        return $this->request_json('POST', '/api/review/reactivate_resource', $token,
-            ['cmid' => $cmid], $timeoutseconds);
+        return $this->request_json(
+            'POST',
+            '/api/review/reactivate_resource',
+            $token,
+            ['cmid' => $cmid],
+            $timeoutseconds
+        );
     }
 
     /**
      * List current per-resource overrides (mastered + cancelled) for this user.
      *
      * @param \stdClass $user
+     * @param int       $timeoutseconds HTTP timeout in seconds.
      * @return array
      */
     public function list_overrides_for_user(\stdClass $user, int $timeoutseconds = 5): array {
@@ -695,6 +725,7 @@ class api_client {
      * Get the learner's current preferences (disabled, snoozed_until).
      *
      * @param \stdClass $user
+     * @param int       $timeoutseconds HTTP timeout in seconds.
      * @return array
      */
     public function get_preferences_for_user(\stdClass $user, int $timeoutseconds = 5): array {
@@ -742,6 +773,7 @@ class api_client {
      * @param string $filepath
      * @param string $filename
      * @param string $mimetype
+     * @param int|null $timeoutseconds Optional HTTP timeout in seconds.
      * @return array
      */
     private function request_multipart_file(
@@ -797,7 +829,8 @@ class api_client {
         $jsonerrormessage = $jsonerror === JSON_ERROR_NONE ? '' : json_last_error_msg();
 
         if ($jsonerror !== JSON_ERROR_NONE) {
-            error_log('local_astusse multipart response JSON decode failed for ' . $url . ': ' . $jsonerrormessage);
+            debugging('local_astusse multipart response JSON decode failed for ' . $url
+                . ': ' . $jsonerrormessage, DEBUG_DEVELOPER);
         }
 
         return [
@@ -816,6 +849,7 @@ class api_client {
      * @param string $path
      * @param string $token
      * @param array|null $payload
+     * @param int|null $timeoutseconds Optional HTTP timeout in seconds.
      * @return array
      */
     private function request_json(
@@ -856,8 +890,8 @@ class api_client {
         // An empty body (e.g. 202 Accepted / 204 No Content) is legitimate and is NOT a
         // decode error worth logging — otherwise endpoints that return no content spam the logs.
         if (trim((string)$body) !== '' && $jsonerror !== JSON_ERROR_NONE) {
-            error_log('local_astusse JSON decode failed for ' . $url . ': ' . $jsonerrormessage . '. Body preview: ' .
-                substr($body, 0, 500));
+            debugging('local_astusse JSON decode failed for ' . $url . ': ' . $jsonerrormessage . '. Body preview: ' .
+                substr($body, 0, 500), DEBUG_DEVELOPER);
         }
 
         return [
@@ -908,7 +942,7 @@ class api_client {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         }
 
-        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($ch, $headerline) use (&$httpstatus, &$responsecontenttype) {
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $headerline) use (&$httpstatus, &$responsecontenttype) {
             $length = strlen($headerline);
             $trimmed = trim($headerline);
 
@@ -928,7 +962,10 @@ class api_client {
             return $length;
         });
 
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function (
+            $ch,
+            $data
+        ) use (
             &$httpstatus,
             &$responsecontenttype,
             &$bufferedresponse,

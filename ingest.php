@@ -18,7 +18,7 @@
  * RAG ingest page (course entry point, multi-course selection).
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -42,7 +42,7 @@ class local_astusse_ingest_form extends moodleform {
         $filemanageroptions = $this->_customdata['filemanageroptions'];
         $courseresources = $this->_customdata['courseresources'] ?? [];
 
-        // === Course resources slot (moved to left column by JS) ===
+        // Course resources slot (moved to left column by JS).
         $mform->addElement('html', '<div class="local-astusse-resources-slot">');
         $mform->addElement('html', '<h4>' . get_string('ingest:course_resources_heading', 'local_astusse') . '</h4>');
         $mform->addElement('html', '<p class="text-muted small">'
@@ -51,7 +51,11 @@ class local_astusse_ingest_form extends moodleform {
         if (!empty($courseresources)) {
             // Type filter buttons.
             $filterhtml = '<div class="local-astusse-resource-filters mb-2">';
-            foreach (['all', 'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'] as $ftype) {
+            $filtertypes = [
+                'all', 'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book',
+                'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder',
+            ];
+            foreach ($filtertypes as $ftype) {
                 $label = get_string('ingest:course_resources_filter_' . $ftype, 'local_astusse');
                 $active = $ftype === 'all' ? ' active' : '';
                 $filterhtml .= '<button type="button" class="btn btn-sm btn-outline-secondary local-astusse-filter-btn'
@@ -94,7 +98,7 @@ class local_astusse_ingest_form extends moodleform {
         }
         $mform->addElement('html', '</div>');
 
-        // === File upload slot (moved below resources by JS) ===
+        // File upload slot (moved below resources by JS).
         $maxuploadmb = (int)($this->_customdata['maxuploadmb'] ?? 50);
         $mform->addElement('html', '<div class="local-astusse-upload-slot">');
         $mform->addElement('html', '<h4>' . get_string('ingest:upload_heading', 'local_astusse') . '</h4>');
@@ -114,7 +118,7 @@ class local_astusse_ingest_form extends moodleform {
         // Single submit button.
         $this->add_action_buttons(false, get_string('ingest:submit_button', 'local_astusse'));
 
-        // === Course selector (moved to sidebar by JS) ===
+        // Course selector (moved to sidebar by JS).
         $mform->addElement('html', '<div class="local-astusse-course-sidebar-slot">');
         $mform->addElement('html', '<h4>' . get_string('ingest:courses_label', 'local_astusse') . '</h4>');
         $mform->addElement('html', '<p class="text-muted small">'
@@ -134,17 +138,6 @@ class local_astusse_ingest_form extends moodleform {
         $mform->setType('courseids', PARAM_RAW);
         $mform->addElement('html', '</div>');
     }
-
-    /**
-     * Validate form values.
-     *
-     * @param array $data
-     * @param array $files
-     * @return array
-     */
-    public function validation($data, $files): array {
-        return parent::validation($data, $files);
-    }
 }
 
 $courseid = required_param('courseid', PARAM_INT);
@@ -159,7 +152,7 @@ $PAGE->set_url(new moodle_url('/local/astusse/ingest.php', ['courseid' => $cours
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('ingest:title', 'local_astusse'));
 $PAGE->set_heading(format_string($course->fullname));
-$PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
+local_astusse_require_charte_assets($PAGE);
 
 $referencecontext = local_astusse_get_reference_trainer_context($courseid);
 $referencestatus = $referencecontext['status'];
@@ -263,7 +256,7 @@ if ($formdata = $form->get_data()) {
     $queued = 0;
     $skipped = [];
 
-    // --- 1. Queue selected course resources ---
+    // 1. Queue selected course resources.
     $selectedcmids = optional_param_array('selectedresources', [], PARAM_INT);
     $selectedcmids = array_values(array_unique(array_filter(array_map('intval', $selectedcmids))));
 
@@ -278,7 +271,7 @@ if ($formdata = $form->get_data()) {
             continue;
         }
 
-        // mod_folder: expand into one job per file in the folder.
+        // Mod_folder: expand into one job per file in the folder.
         if ($meta['modname'] === 'folder') {
             $folderfiles = local_astusse_list_folder_files($selectedcmid);
             if (empty($folderfiles)) {
@@ -324,7 +317,7 @@ if ($formdata = $form->get_data()) {
         }
     }
 
-    // --- 2. Queue uploaded files ---
+    // 2. Queue uploaded files.
     $fs = get_file_storage();
     $draftfiles = $fs->get_area_files(
         $usercontext->id,
@@ -384,7 +377,7 @@ if ($formdata = $form->get_data()) {
 }
 
 echo $OUTPUT->header();
-echo html_writer::start_div('local-astusse-ingest-page');
+echo html_writer::start_div('local-astusse-charte local-astusse-ingest-page');
 echo html_writer::start_div('local-astusse-ingest-hero');
 echo html_writer::start_div('local-astusse-ingest-hero-copy');
 echo html_writer::tag('span', 'ASTUSSE', ['class' => 'local-astusse-ingest-kicker']);
@@ -426,8 +419,11 @@ $jobsmainlabel = $activejobscount > 0
 echo html_writer::link(
     $jobsurl,
     html_writer::tag('span', $jobsmainlabel, ['class' => 'local-astusse-ingest-jobs-card-label']) .
-        html_writer::tag('span', get_string('jobs:hero_cta', 'local_astusse'),
-            ['class' => 'local-astusse-ingest-jobs-card-cta']),
+        html_writer::tag(
+            'span',
+            get_string('jobs:hero_cta', 'local_astusse'),
+            ['class' => 'local-astusse-ingest-jobs-card-cta']
+        ),
     ['class' => $jobscardclass]
 );
 
@@ -446,7 +442,7 @@ $form->display();
 echo html_writer::end_div();
 echo html_writer::end_div();
 
-echo html_writer::end_div(); // .local-astusse-ingest-page
+echo html_writer::end_div(); // End of .local-astusse-ingest-page.
 
 $PAGE->requires->js_call_amd('local_astusse/ingest_page', 'init');
 

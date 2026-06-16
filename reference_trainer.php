@@ -18,7 +18,7 @@
  * Course reference trainer page for local_astusse.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -37,6 +37,7 @@ $PAGE->set_url(new moodle_url('/local/astusse/reference_trainer.php', ['courseid
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('referencetrainer:title', 'local_astusse'));
 $PAGE->set_heading(format_string($course->fullname));
+local_astusse_require_charte_assets($PAGE);
 
 $candidateoptions = \local_astusse\reference_trainer_service::get_candidate_options($courseid);
 $status = \local_astusse\reference_trainer_service::get_status($courseid);
@@ -92,13 +93,14 @@ if ($error !== '') {
 }
 
 $formurl = new moodle_url('/local/astusse/reference_trainer.php', ['courseid' => $courseid]);
-echo html_writer::start_div('local-astusse-referencetrainer-page');
+echo html_writer::start_div('local-astusse-charte local-astusse-referencetrainer-page');
 
 echo html_writer::start_div('local-astusse-referencetrainer-hero');
 echo html_writer::start_div('local-astusse-referencetrainer-hero-copy');
 echo html_writer::tag('span', 'ASTUSSE', ['class' => 'local-astusse-referencetrainer-kicker']);
 echo html_writer::tag('h2', get_string('referencetrainer:heading', 'local_astusse'));
-echo html_writer::tag('p', get_string('referencetrainer:intro', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-intro']);
+$introtext = get_string('referencetrainer:intro', 'local_astusse');
+echo html_writer::tag('p', $introtext, ['class' => 'local-astusse-referencetrainer-intro']);
 echo html_writer::end_div();
 
 echo html_writer::start_div('local-astusse-referencetrainer-hero-meta');
@@ -120,37 +122,39 @@ echo html_writer::tag(
 echo html_writer::end_div();
 echo html_writer::end_div();
 
+$labelclass = ['class' => 'local-astusse-referencetrainer-summary-label'];
+$textclass = ['class' => 'local-astusse-referencetrainer-summary-text'];
+$cardclass = ['class' => 'local-astusse-referencetrainer-summary-card'];
+
 echo html_writer::start_div('local-astusse-referencetrainer-summary');
-echo html_writer::tag(
-    'div',
-    html_writer::tag('span', get_string('referencetrainer:summary_course', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-summary-label']) .
-        html_writer::tag('strong', format_string($course->fullname)) .
-        html_writer::tag('p', get_string('referencetrainer:summary_course_text', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-summary-text']),
-    ['class' => 'local-astusse-referencetrainer-summary-card']
-);
-echo html_writer::tag(
-    'div',
-    html_writer::tag('span', get_string('referencetrainer:summary_candidates', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-summary-label']) .
-        html_writer::tag('strong', (string)$candidatecount) .
-        html_writer::tag('p', get_string('referencetrainer:summary_candidates_text', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-summary-text']),
-    ['class' => 'local-astusse-referencetrainer-summary-card']
-);
-echo html_writer::tag(
-    'div',
-    html_writer::tag('span', get_string('referencetrainer:summary_current', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-summary-label']) .
-        html_writer::tag('strong', s($currenttrainerlabel)) .
-        html_writer::tag('p', get_string('referencetrainer:summary_current_text', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-summary-text']),
-    ['class' => 'local-astusse-referencetrainer-summary-card']
-);
+
+$coursecard = html_writer::tag('span', get_string('referencetrainer:summary_course', 'local_astusse'), $labelclass)
+    . html_writer::tag('strong', format_string($course->fullname))
+    . html_writer::tag('p', get_string('referencetrainer:summary_course_text', 'local_astusse'), $textclass);
+echo html_writer::tag('div', $coursecard, $cardclass);
+
+$candidatescard = html_writer::tag('span', get_string('referencetrainer:summary_candidates', 'local_astusse'), $labelclass)
+    . html_writer::tag('strong', (string)$candidatecount)
+    . html_writer::tag('p', get_string('referencetrainer:summary_candidates_text', 'local_astusse'), $textclass);
+echo html_writer::tag('div', $candidatescard, $cardclass);
+
+$currentcard = html_writer::tag('span', get_string('referencetrainer:summary_current', 'local_astusse'), $labelclass)
+    . html_writer::tag('strong', s($currenttrainerlabel))
+    . html_writer::tag('p', get_string('referencetrainer:summary_current_text', 'local_astusse'), $textclass);
+echo html_writer::tag('div', $currentcard, $cardclass);
+
 echo html_writer::end_div();
 
 echo html_writer::start_div('local-astusse-referencetrainer-card');
 echo html_writer::start_div('local-astusse-referencetrainer-card-body');
-echo html_writer::tag('h3', get_string('referencetrainer:label', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-form-title']);
-echo html_writer::tag('p', get_string('referencetrainer:label_help', 'local_astusse'), ['class' => 'local-astusse-referencetrainer-form-text']);
+$formtitle = get_string('referencetrainer:label', 'local_astusse');
+$formhelp = get_string('referencetrainer:label_help', 'local_astusse');
+echo html_writer::tag('h3', $formtitle, ['class' => 'local-astusse-referencetrainer-form-title']);
+echo html_writer::tag('p', $formhelp, ['class' => 'local-astusse-referencetrainer-form-text']);
 
 if (empty($candidateoptions)) {
-    echo html_writer::div(get_string('referencetrainer:no_candidates', 'local_astusse'), 'local-astusse-referencetrainer-inline-notice');
+    $nocandidates = get_string('referencetrainer:no_candidates', 'local_astusse');
+    echo html_writer::div($nocandidates, 'local-astusse-referencetrainer-inline-notice');
 } else {
     echo html_writer::start_tag('form', [
         'method' => 'post',

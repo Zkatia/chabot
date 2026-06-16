@@ -18,13 +18,11 @@
  * Ad-hoc task that sends one queued document to the ASTUSSE ingest gateway.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\task;
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Process a single ingestion job previously inserted in local_astusse_ingest_jobs.
@@ -118,8 +116,10 @@ class ingest_document_task extends \core\task\adhoc_task {
                 return;
             }
 
-            if ($httpstatus === 0 || $httpstatus === 408 || $httpstatus === 429 ||
-                    ($httpstatus >= 500 && $httpstatus < 600)) {
+            if (
+                $httpstatus === 0 || $httpstatus === 408 || $httpstatus === 429 ||
+                    ($httpstatus >= 500 && $httpstatus < 600)
+            ) {
                 $transient = true;
             }
             $errormessage = $client->extract_error_message($result);
@@ -161,8 +161,14 @@ class ingest_document_task extends \core\task\adhoc_task {
 
             $usercontext = \context_user::instance((int)$job->userid);
             $fs = get_file_storage();
-            $files = $fs->get_area_files($usercontext->id, 'local_astusse', self::FILEAREA, $itemid,
-                'id DESC', false);
+            $files = $fs->get_area_files(
+                $usercontext->id,
+                'local_astusse',
+                self::FILEAREA,
+                $itemid,
+                'id DESC',
+                false
+            );
             $file = reset($files);
             if (!$file) {
                 throw new \Exception('No stored file found for job ' . $job->id
@@ -183,7 +189,11 @@ class ingest_document_task extends \core\task\adhoc_task {
             ];
         }
 
-        if (in_array($job->sourcetype, ['resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'], true)) {
+        $cmsourcetypes = [
+            'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book',
+            'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder',
+        ];
+        if (in_array($job->sourcetype, $cmsourcetypes, true)) {
             $cmid = (int)$job->sourcecmid;
             if ($cmid <= 0) {
                 throw new \Exception('Module job ' . $job->id . ' is missing sourcecmid');
@@ -211,8 +221,14 @@ class ingest_document_task extends \core\task\adhoc_task {
      * @param string|null $errormessage
      * @return void
      */
-    private function finalize(int $jobid, string $status, ?int $httpstatus,
-            ?string $backendjobid, ?string $backendtraceid, ?string $errormessage): void {
+    private function finalize(
+        int $jobid,
+        string $status,
+        ?int $httpstatus,
+        ?string $backendjobid,
+        ?string $backendtraceid,
+        ?string $errormessage
+    ): void {
         global $DB;
         $DB->update_record(self::TABLE, (object)[
             'id' => $jobid,
@@ -236,8 +252,14 @@ class ingest_document_task extends \core\task\adhoc_task {
      * @param bool $requeue If true, reset status to 'queued' so the next attempt will run.
      * @return void
      */
-    private function partial_update(int $jobid, ?int $httpstatus, ?string $backendjobid,
-            ?string $backendtraceid, ?string $errormessage, bool $requeue): void {
+    private function partial_update(
+        int $jobid,
+        ?int $httpstatus,
+        ?string $backendjobid,
+        ?string $backendtraceid,
+        ?string $errormessage,
+        bool $requeue
+    ): void {
         global $DB;
         $DB->update_record(self::TABLE, (object)[
             'id' => $jobid,

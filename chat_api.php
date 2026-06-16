@@ -18,7 +18,7 @@
  * Shared AJAX endpoint for ASTUSSE chat pages.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -51,7 +51,7 @@ function local_astusse_chat_send_json(array $payload, int $statuscode = 200): vo
 
     $json = json_encode($payload, local_astusse_chat_json_flags());
     if ($json === false) {
-        error_log('local_astusse chat JSON encoding failed: ' . json_last_error_msg());
+        debugging('local_astusse chat JSON encoding failed: ' . json_last_error_msg(), DEBUG_DEVELOPER);
         $json = '{"ok":false,"message":"Unexpected JSON encoding error."}';
     }
 
@@ -143,7 +143,7 @@ try {
         'agentUsed' => is_array($bodyjson) ? (string)($bodyjson['agentUsed'] ?? $agenttype) : $agenttype,
     ]);
 } catch (\Throwable $e) {
-    error_log('local_astusse chat send failed: ' . get_class($e) . ' - ' . $e->getMessage());
+    debugging('local_astusse chat send failed: ' . get_class($e) . ' - ' . $e->getMessage(), DEBUG_DEVELOPER);
 
     $errormessage = trim((string)$e->getMessage());
     if ($e instanceof moodle_exception && $errormessage !== '') {

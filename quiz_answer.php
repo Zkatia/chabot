@@ -10,13 +10,16 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * AJAX proxy (T3 etape 6) : envoie une reponse per-question
  * (POST /api/review/record_quiz_answer cote API).
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -41,8 +44,10 @@ if (isguestuser()) {
 $quizsessionid = required_param('quizSessionId', PARAM_RAW_TRIMMED);
 $questionid    = required_param('questionId', PARAM_RAW_TRIMMED);
 
-if (!preg_match('/^[0-9a-fA-F-]{36}$/', $quizsessionid)
-    || !preg_match('/^[0-9a-fA-F-]{36}$/', $questionid)) {
+if (
+    !preg_match('/^[0-9a-fA-F-]{36}$/', $quizsessionid)
+    || !preg_match('/^[0-9a-fA-F-]{36}$/', $questionid)
+) {
     http_response_code(400);
     echo json_encode(['error' => 'invalid_uuid']);
     die;
@@ -67,7 +72,7 @@ try {
         $responsetimems
     );
 } catch (\Throwable $e) {
-    error_log('local_astusse quiz_answer: ' . $e->getMessage());
+    debugging('local_astusse quiz_answer: ' . $e->getMessage(), DEBUG_DEVELOPER);
     http_response_code(502);
     echo json_encode(['error' => 'gateway_unavailable']);
     die;

@@ -18,13 +18,11 @@
  * Ad-hoc task : send one queued consultation to the AI API (T1).
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\task;
-
-defined('MOODLE_INTERNAL') || die();
 
 use local_astusse\observer\consultation_observer;
 
@@ -34,7 +32,6 @@ use local_astusse\observer\consultation_observer;
  * Custom data payload : {"queueid": int}.
  */
 class log_consultation_task extends \core\task\adhoc_task {
-
     /** @var int Max attempts for transient failures (network / 5xx / timeout). */
     private const MAX_ATTEMPTS_TRANSIENT = 5;
 
@@ -99,8 +96,12 @@ class log_consultation_task extends \core\task\adhoc_task {
                 // Transient : let Moodle retry (bounded by MAX_ATTEMPTS_TRANSIENT).
                 $msg = 'transient HTTP ' . $httpstatus;
                 if ($attempts >= self::MAX_ATTEMPTS_TRANSIENT) {
-                    $this->finalize($queueid, 'failed', $httpstatus,
-                        'max transient attempts reached: ' . $msg);
+                    $this->finalize(
+                        $queueid,
+                        'failed',
+                        $httpstatus,
+                        'max transient attempts reached: ' . $msg
+                    );
                     mtrace('local_astusse log_consultation: row ' . $queueid . ' failed after '
                         . $attempts . ' attempts (' . $msg . ')');
                     return;
@@ -117,8 +118,12 @@ class log_consultation_task extends \core\task\adhoc_task {
         } catch (\Throwable $e) {
             // Network exception / MUST_EXIST miss / re-thrown transient.
             if ($attempts >= self::MAX_ATTEMPTS_TRANSIENT) {
-                $this->finalize($queueid, 'failed', null,
-                    'max attempts reached: ' . $e->getMessage());
+                $this->finalize(
+                    $queueid,
+                    'failed',
+                    null,
+                    'max attempts reached: ' . $e->getMessage()
+                );
                 mtrace('local_astusse log_consultation: row ' . $queueid
                     . ' failed after ' . $attempts . ' attempts: ' . $e->getMessage());
                 return;

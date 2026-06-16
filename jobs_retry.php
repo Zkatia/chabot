@@ -18,7 +18,7 @@
  * Re-queue a failed ingestion job belonging to the current user.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -51,9 +51,14 @@ if ($job->status !== 'failed') {
 if ($job->sourcetype === 'upload') {
     $usercontext = context_user::instance((int)$job->userid);
     $fs = get_file_storage();
-    $files = $fs->get_area_files($usercontext->id, 'local_astusse',
+    $files = $fs->get_area_files(
+        $usercontext->id,
+        'local_astusse',
         \local_astusse\task\ingest_document_task::FILEAREA,
-        (int)$job->fileareaitemid, 'id DESC', false);
+        (int)$job->fileareaitemid,
+        'id DESC',
+        false
+    );
     if (empty($files)) {
         \core\notification::error(get_string('jobs:retry_file_gone', 'local_astusse'));
         redirect($returnurl);

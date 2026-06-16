@@ -21,7 +21,7 @@
  * Without courseid  → global mode (all accessible courses).
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -36,7 +36,7 @@ if ($quizsessionid !== '' && !preg_match('/^[0-9a-fA-F-]{36}$/', $quizsessionid)
 }
 
 if ($courseid > 0) {
-    // ── Course mode ──────────────────────────────────────────────────────────
+    // Course mode.
     $course = get_course($courseid);
     $coursecontext = context_course::instance($course->id);
 
@@ -61,9 +61,8 @@ if ($courseid > 0) {
         'selectedCourseId' => (string)$courseid,
         'courses'         => $courses,
     ];
-
 } else {
-    // ── Global mode ───────────────────────────────────────────────────────────
+    // Global mode.
     require_login();
 
     $accessiblecourses = local_astusse_get_chat_accessible_courses($USER);
@@ -79,12 +78,21 @@ if ($courseid > 0) {
         echo html_writer::start_div('local-astusse-chat-empty');
         echo html_writer::start_div('local-astusse-chat-empty-card');
         echo html_writer::tag('span', 'ASTUSSE', ['class' => 'local-astusse-chat-empty-kicker']);
-        echo html_writer::tag('h2', get_string('chat:empty_heading', 'local_astusse'),
-            ['class' => 'local-astusse-chat-empty-title']);
-        echo html_writer::tag('p', get_string('chat:empty_intro', 'local_astusse'),
-            ['class' => 'local-astusse-chat-empty-intro']);
-        echo html_writer::tag('p', get_string('chat:empty_explain', 'local_astusse'),
-            ['class' => 'local-astusse-chat-empty-explain']);
+        echo html_writer::tag(
+            'h2',
+            get_string('chat:empty_heading', 'local_astusse'),
+            ['class' => 'local-astusse-chat-empty-title']
+        );
+        echo html_writer::tag(
+            'p',
+            get_string('chat:empty_intro', 'local_astusse'),
+            ['class' => 'local-astusse-chat-empty-intro']
+        );
+        echo html_writer::tag(
+            'p',
+            get_string('chat:empty_explain', 'local_astusse'),
+            ['class' => 'local-astusse-chat-empty-explain']
+        );
 
         echo html_writer::start_div('local-astusse-chat-empty-actions');
         echo html_writer::link(
@@ -99,8 +107,8 @@ if ($courseid > 0) {
         );
         echo html_writer::end_div();
 
-        echo html_writer::end_div(); // card
-        echo html_writer::end_div(); // empty
+        echo html_writer::end_div(); // Card.
+        echo html_writer::end_div(); // Empty.
         echo $OUTPUT->footer();
         exit;
     }

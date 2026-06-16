@@ -18,13 +18,11 @@
  * Scheduled cleanup of processed consultation-queue rows (T1).
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\task;
-
-defined('MOODLE_INTERNAL') || die();
 
 use local_astusse\observer\consultation_observer;
 
@@ -33,7 +31,6 @@ use local_astusse\observer\consultation_observer;
  * older than the retention window. 'queued' rows are never purged.
  */
 class cleanup_consultation_queue extends \core\task\scheduled_task {
-
     /** @var int Retention window in seconds for finalised queue rows. */
     private const RETENTION_SECONDS = 7 * 24 * 3600;
 

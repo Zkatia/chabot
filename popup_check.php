@@ -22,7 +22,7 @@
  * apprenant never sees a glitch.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -121,6 +121,9 @@ if (isset($body['cmids']) && is_array($body['cmids'])) {
 // remplace les $a->key par {key} et on conserve la traduction.
 $quizstrings = [
     'cancelConfirm'           => get_string('popup:cancel_confirm', 'local_astusse'),
+    'cancelTitle'             => get_string('popup:cancel_title', 'local_astusse'),
+    'cancelConfirmBtn'        => get_string('popup:cancel_confirm_btn', 'local_astusse'),
+    'cancelDismissBtn'        => get_string('popup:cancel_dismiss_btn', 'local_astusse'),
     'loading'                 => get_string('quiz:loading', 'local_astusse'),
     'waitingGeneration'       => get_string('quiz:waiting_generation', 'local_astusse'),
     'librePlaceholder'        => get_string('quiz:libre_placeholder', 'local_astusse'),
@@ -143,16 +146,26 @@ $quizstrings = [
     'bilanFinish'             => get_string('bilan:finish', 'local_astusse'),
     'bilanPerresourceLabel'   => get_string('bilan:perresource_label', 'local_astusse'),
 
-    'questionProgressTpl'     => get_string('quiz:question_progress', 'local_astusse',
-        (object)['current' => '{current}', 'total' => '{total}']),
+    'questionProgressTpl'     => get_string(
+        'quiz:question_progress',
+        'local_astusse',
+        (object)['current' => '{current}', 'total' => '{total}']
+    ),
     'correctAnswerQcmTpl'     => get_string('quiz:correct_answer_qcm', 'local_astusse', '{answer}'),
     'correctAnswerLibreTpl'   => get_string('quiz:correct_answer_libre', 'local_astusse', '{answer}'),
-    'bilanScoreTpl'           => get_string('bilan:score', 'local_astusse',
-        (object)['correct' => '{correct}', 'total' => '{total}']),
+    'bilanScoreTpl'           => get_string(
+        'bilan:score',
+        'local_astusse',
+        (object)['correct' => '{correct}', 'total' => '{total}']
+    ),
     'bilanConsolidationTpl'   => get_string('bilan:consolidation', 'local_astusse', '{days}'),
-    'bilanPerresourceLineTpl' => get_string('bilan:perresource_line', 'local_astusse',
+    'bilanPerresourceLineTpl' => get_string(
+        'bilan:perresource_line',
+        'local_astusse',
         (object)['name' => '{name}', 'course' => '{course}',
-                 'correct' => '{correct}', 'total' => '{total}']),
+        'correct' => '{correct}',
+        'total' => '{total}']
+    ),
 ];
 
 echo json_encode([

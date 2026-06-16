@@ -18,13 +18,11 @@
  * Scheduled cleanup of finalised ingestion jobs older than 30 days.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\task;
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Delete succeeded/failed ingestion jobs older than the retention window.

@@ -70,6 +70,80 @@
         '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
     const ICON_CHECK = SVG_OPEN + '<path d="M20 6 9 17l-5-5"/></svg>';
 
+    // ── Modale de confirmation charte (remplace window.confirm) ──
+    // Renvoie une Promise<boolean> : true = confirmé, false = annulé.
+    function astusseConfirm(opts) {
+        opts = opts || {};
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'la-modal-overlay';
+
+            const card = document.createElement('div');
+            card.className = 'la-modal-card';
+            card.setAttribute('role', 'alertdialog');
+            card.setAttribute('aria-modal', 'true');
+
+            const titleEl = document.createElement('h2');
+            titleEl.className = 'la-modal-title';
+            titleEl.textContent = opts.title || '';
+
+            const msgEl = document.createElement('p');
+            msgEl.className = 'la-modal-message';
+            msgEl.textContent = opts.message || '';
+
+            const actions = document.createElement('div');
+            actions.className = 'la-modal-actions';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'la-modal-btn la-modal-cancel';
+            cancelBtn.textContent = opts.cancelLabel || 'Annuler';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'la-modal-btn la-modal-confirm' + (opts.danger ? ' is-danger' : '');
+            confirmBtn.textContent = opts.confirmLabel || 'OK';
+
+            let closed = false;
+            const close = (result) => {
+                if (closed) {
+                    return;
+                }
+                closed = true;
+                document.removeEventListener('keydown', onKey, true);
+                overlay.remove();
+                resolve(result);
+            };
+            const onKey = (event) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    close(false);
+                } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    close(true);
+                }
+            };
+
+            cancelBtn.addEventListener('click', () => close(false));
+            confirmBtn.addEventListener('click', () => close(true));
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) {
+                    close(false);
+                }
+            });
+            document.addEventListener('keydown', onKey, true);
+
+            actions.appendChild(cancelBtn);
+            actions.appendChild(confirmBtn);
+            card.appendChild(titleEl);
+            card.appendChild(msgEl);
+            card.appendChild(actions);
+            overlay.appendChild(card);
+            (appRoot || document.body).appendChild(overlay);
+            confirmBtn.focus();
+        });
+    }
+
     function agentLabel(agentId) {
         return (config.labels && config.labels.agents && config.labels.agents[agentId]) || agentId;
     }
@@ -535,7 +609,14 @@
             deleteButton.addEventListener('click', async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (!window.confirm(config.strings.deleteConversationConfirm)) {
+                const confirmed = await astusseConfirm({
+                    title: config.strings.deleteConversationTitle,
+                    message: config.strings.deleteConversationConfirm,
+                    confirmLabel: config.strings.deleteConversationLabel,
+                    cancelLabel: config.strings.cancelLabel,
+                    danger: true
+                });
+                if (!confirmed) {
                     return;
                 }
                 await deleteThread(thread);

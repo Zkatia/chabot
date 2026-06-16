@@ -18,7 +18,7 @@
  * SSE streaming proxy for ASTUSSE chat.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -46,6 +46,9 @@ while (ob_get_level() > 0) {
 
 /**
  * Send one SSE data line and flush.
+ *
+ * @param string $jsondata JSON-encoded payload for the SSE data line.
+ * @return void
  */
 function local_astusse_stream_send(string $jsondata): void {
     echo 'data: ' . $jsondata . "\n\n";
@@ -64,10 +67,15 @@ function local_astusse_stream_json_flags(): int {
 
 /**
  * Send an error event and terminate.
+ *
+ * @param string $message Human-readable error message to stream to the client.
+ * @return void
  */
 function local_astusse_stream_error(string $message): void {
-    local_astusse_stream_send(json_encode(['type' => 'error', 'message' => $message],
-        local_astusse_stream_json_flags()));
+    local_astusse_stream_send(json_encode(
+        ['type' => 'error', 'message' => $message],
+        local_astusse_stream_json_flags()
+    ));
     exit;
 }
 
@@ -87,7 +95,7 @@ if ($sesskey === '' || !confirm_sesskey($sesskey)) {
     local_astusse_stream_error(get_string('chat:error_invalid_sesskey', 'local_astusse'));
 }
 
-$message   = trim((string)optional_param('message',   '', PARAM_RAW));
+$message   = trim((string)optional_param('message', '', PARAM_RAW));
 $agenttype = trim((string)optional_param('agenttype', '', PARAM_ALPHA));
 $sessionid = trim((string)optional_param('sessionid', '', PARAM_ALPHANUMEXT));
 
@@ -115,14 +123,14 @@ try {
         $sessionid,
         (string)$courseid,
         $referencetrainerid,
-        function(string $data): bool {
+        function (string $data): bool {
             if (connection_aborted()) {
                 return false;
             }
 
-        echo $data;
-        @ob_flush();
-        @flush();
+            echo $data;
+            @ob_flush();
+            @flush();
             return true;
         }
     );
@@ -136,7 +144,8 @@ try {
     $bodypreview = (string)($result['body_preview'] ?? '');
 
     if ($status < 200 || $status >= 300) {
-        error_log('local_astusse stream upstream HTTP error: status=' . $status . ', body=' . substr($bodypreview, 0, 500));
+        debugging('local_astusse stream upstream HTTP error: status=' . $status
+            . ', body=' . substr($bodypreview, 0, 500), DEBUG_DEVELOPER);
         local_astusse_stream_send(json_encode([
             'type' => 'error',
             'status' => $status,
@@ -146,7 +155,8 @@ try {
     }
 
     if (stripos($contenttype, 'text/event-stream') === false) {
-        error_log('local_astusse stream unexpected content type: ' . $contenttype . ', body=' . substr($bodypreview, 0, 500));
+        debugging('local_astusse stream unexpected content type: ' . $contenttype
+            . ', body=' . substr($bodypreview, 0, 500), DEBUG_DEVELOPER);
         local_astusse_stream_send(json_encode([
             'type' => 'error',
             'message' => 'Backend did not return an event stream',
@@ -154,7 +164,7 @@ try {
         exit;
     }
 } catch (\Throwable $e) {
-    error_log('local_astusse stream failed: ' . get_class($e) . ' - ' . $e->getMessage());
+    debugging('local_astusse stream failed: ' . get_class($e) . ' - ' . $e->getMessage(), DEBUG_DEVELOPER);
     local_astusse_stream_send(json_encode([
         'type' => 'error',
         'message' => 'Backend connection failed',

@@ -18,7 +18,7 @@
  * Trainer scope configuration page (course access point, trainer-global setting).
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -37,6 +37,7 @@ $PAGE->set_url(new moodle_url('/local/astusse/trainer_scope.php', ['courseid' =>
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('trainerscope:title', 'local_astusse'));
 $PAGE->set_heading(format_string($course->fullname));
+local_astusse_require_charte_assets($PAGE);
 
 $error = '';
 $success = '';
@@ -145,7 +146,7 @@ if (!array_key_exists($currentscope, $options)) {
     );
 }
 
-echo html_writer::start_div('local-astusse-trainerscope-page');
+echo html_writer::start_div('local-astusse-charte local-astusse-trainerscope-page');
 
 echo html_writer::start_div('local-astusse-trainerscope-hero');
 echo html_writer::start_div('local-astusse-trainerscope-hero-copy');
@@ -161,35 +162,42 @@ echo html_writer::tag(
         html_writer::span(get_string('trainerscope:active_scope_line', 'local_astusse', $allscopelabels[$effectivescope])),
     ['class' => 'local-astusse-trainerscope-status']
 );
-echo html_writer::tag('p', get_string('trainerscope:global_notice', 'local_astusse'), ['class' => 'local-astusse-trainerscope-global-note']);
+$globalnotice = get_string('trainerscope:global_notice', 'local_astusse');
+echo html_writer::tag('p', $globalnotice, ['class' => 'local-astusse-trainerscope-global-note']);
 echo html_writer::end_div();
 echo html_writer::end_div();
 
+$labelclass = ['class' => 'local-astusse-trainerscope-summary-label'];
+$textclass = ['class' => 'local-astusse-trainerscope-summary-text'];
+$cardclass = ['class' => 'local-astusse-trainerscope-summary-card'];
+$yesno = $delegationenabled ? get_string('yes') : get_string('no');
+$platformyesno = $platformscopeallowed ? get_string('yes') : get_string('no');
+
 echo html_writer::start_div('local-astusse-trainerscope-summary');
-echo html_writer::tag(
-    'div',
-    html_writer::tag('span', get_string('trainerscope:policy_title', 'local_astusse'), ['class' => 'local-astusse-trainerscope-summary-label']) .
-        html_writer::tag('strong', get_string('trainerscope:delegation_state', 'local_astusse', $delegationenabled ? get_string('yes') : get_string('no'))) .
-        html_writer::tag('p', get_string('trainerscope:platform_state', 'local_astusse', $platformscopeallowed ? get_string('yes') : get_string('no')), ['class' => 'local-astusse-trainerscope-summary-text']),
-    ['class' => 'local-astusse-trainerscope-summary-card']
-);
-echo html_writer::tag(
-    'div',
-    html_writer::tag('span', get_string('trainerscope:trainer_id', 'local_astusse', $trainerid), ['class' => 'local-astusse-trainerscope-summary-label']) .
-        html_writer::tag('strong', $allscopelabels[$effectivescope]) .
-        html_writer::tag('p', $scopedescriptions[$effectivescope] ?? '', ['class' => 'local-astusse-trainerscope-summary-text']),
-    ['class' => 'local-astusse-trainerscope-summary-card']
-);
+
+$policycard = html_writer::tag('span', get_string('trainerscope:policy_title', 'local_astusse'), $labelclass)
+    . html_writer::tag('strong', get_string('trainerscope:delegation_state', 'local_astusse', $yesno))
+    . html_writer::tag('p', get_string('trainerscope:platform_state', 'local_astusse', $platformyesno), $textclass);
+echo html_writer::tag('div', $policycard, $cardclass);
+
+$trainercard = html_writer::tag('span', get_string('trainerscope:trainer_id', 'local_astusse', $trainerid), $labelclass)
+    . html_writer::tag('strong', $allscopelabels[$effectivescope])
+    . html_writer::tag('p', $scopedescriptions[$effectivescope] ?? '', $textclass);
+echo html_writer::tag('div', $trainercard, $cardclass);
+
 echo html_writer::end_div();
 
 $formurl = new moodle_url('/local/astusse/trainer_scope.php', ['courseid' => $courseid]);
 echo html_writer::start_div('local-astusse-trainerscope-card');
 echo html_writer::start_div('local-astusse-trainerscope-card-body');
-echo html_writer::tag('h3', get_string('trainerscope:label', 'local_astusse'), ['class' => 'local-astusse-trainerscope-form-title']);
-echo html_writer::tag('p', get_string('trainerscope:label_help', 'local_astusse'), ['class' => 'local-astusse-trainerscope-form-text']);
+$formtitle = get_string('trainerscope:label', 'local_astusse');
+$formhelp = get_string('trainerscope:label_help', 'local_astusse');
+echo html_writer::tag('h3', $formtitle, ['class' => 'local-astusse-trainerscope-form-title']);
+echo html_writer::tag('p', $formhelp, ['class' => 'local-astusse-trainerscope-form-text']);
 
 if (!$delegationenabled) {
-    echo html_writer::div(get_string('trainerscope:delegation_disabled', 'local_astusse'), 'local-astusse-trainerscope-inline-notice');
+    $disabledmsg = get_string('trainerscope:delegation_disabled', 'local_astusse');
+    echo html_writer::div($disabledmsg, 'local-astusse-trainerscope-inline-notice');
     echo html_writer::end_div();
     echo html_writer::end_div();
     echo html_writer::end_div();

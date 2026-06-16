@@ -18,7 +18,7 @@
  * Ingestion jobs tracking page with filters and pagination.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -43,7 +43,10 @@ $filterstatus = optional_param('filterstatus', '', PARAM_ALPHANUMEXT);
 $page = optional_param('page', 0, PARAM_INT);
 $perpage = 25;
 
-$sourcetypechoices = ['upload', 'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book', 'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder'];
+$sourcetypechoices = [
+    'upload', 'resource', 'page', 'scorm', 'h5pactivity', 'url', 'book',
+    'glossary', 'lesson', 'quiz', 'assign', 'wiki', 'folder',
+];
 $statuschoices = ['queued', 'running', 'succeeded', 'failed'];
 if (!in_array($filtersourcetype, $sourcetypechoices, true)) {
     $filtersourcetype = '';
@@ -74,7 +77,7 @@ $PAGE->set_url(new moodle_url('/local/astusse/jobs.php', $pageurlparams));
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('jobs:title', 'local_astusse'));
 $PAGE->set_heading(format_string($course->fullname));
-$PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
+local_astusse_require_charte_assets($PAGE);
 
 // Build WHERE dynamically.
 $where = ['userid = :userid', 'courseid = :courseid'];
@@ -155,7 +158,7 @@ $retrysesskey = sesskey();
 
 echo $OUTPUT->header();
 
-echo html_writer::start_div('local-astusse-ingest-page');
+echo html_writer::start_div('local-astusse-charte local-astusse-ingest-page');
 echo html_writer::start_div('local-astusse-ingest-hero');
 echo html_writer::start_div('local-astusse-ingest-hero-copy');
 echo html_writer::tag('span', 'ASTUSSE', ['class' => 'local-astusse-ingest-kicker']);
@@ -177,7 +180,7 @@ echo html_writer::link(
 );
 echo html_writer::end_div();
 
-// === Filters bar ===
+// Filters bar.
 $formaction = new moodle_url('/local/astusse/jobs.php');
 echo html_writer::start_tag('form', [
     'id' => 'local-astusse-jobs-filters-form',
@@ -186,8 +189,11 @@ echo html_writer::start_tag('form', [
     'class' => 'local-astusse-jobs-filters card mb-3',
 ]);
 echo html_writer::start_div('card-body');
-echo html_writer::tag('h5', get_string('jobs:filters_heading', 'local_astusse'),
-    ['class' => 'local-astusse-jobs-filters-title']);
+echo html_writer::tag(
+    'h5',
+    get_string('jobs:filters_heading', 'local_astusse'),
+    ['class' => 'local-astusse-jobs-filters-title']
+);
 echo html_writer::start_div('form-row');
 
 // Hidden courseid (stays constant).
@@ -195,8 +201,11 @@ echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 
 
 // ID search (local # or backend UUID).
 echo html_writer::start_div('form-group col-md-3');
-echo html_writer::tag('label', get_string('jobs:filter_jobid', 'local_astusse'),
-    ['for' => 'filterjobid']);
+echo html_writer::tag(
+    'label',
+    get_string('jobs:filter_jobid', 'local_astusse'),
+    ['for' => 'filterjobid']
+);
 echo html_writer::empty_tag('input', [
     'type' => 'text',
     'class' => 'form-control',
@@ -211,8 +220,11 @@ echo html_writer::end_div();
 
 // Target course.
 echo html_writer::start_div('form-group col-md-4');
-echo html_writer::tag('label', get_string('jobs:filter_targetcourse', 'local_astusse'),
-    ['for' => 'filtertargetcourse']);
+echo html_writer::tag(
+    'label',
+    get_string('jobs:filter_targetcourse', 'local_astusse'),
+    ['for' => 'filtertargetcourse']
+);
 $courseoptions = '<option value="0">' . get_string('jobs:filter_any', 'local_astusse') . '</option>';
 foreach ($availablecourses as $cid => $cname) {
     $selected = ((int)$filtertargetcourse === (int)$cid) ? ' selected' : '';
@@ -224,8 +236,11 @@ echo html_writer::end_div();
 
 // Source type.
 echo html_writer::start_div('form-group col-md-3');
-echo html_writer::tag('label', get_string('jobs:filter_sourcetype', 'local_astusse'),
-    ['for' => 'filtersourcetype']);
+echo html_writer::tag(
+    'label',
+    get_string('jobs:filter_sourcetype', 'local_astusse'),
+    ['for' => 'filtersourcetype']
+);
 $sourceoptions = '<option value="">' . get_string('jobs:filter_any', 'local_astusse') . '</option>';
 foreach ($sourcetypechoices as $sc) {
     $sclabel = $sc === 'upload'
@@ -240,8 +255,11 @@ echo html_writer::end_div();
 
 // Status.
 echo html_writer::start_div('form-group col-md-3');
-echo html_writer::tag('label', get_string('jobs:filter_status', 'local_astusse'),
-    ['for' => 'filterstatus']);
+echo html_writer::tag(
+    'label',
+    get_string('jobs:filter_status', 'local_astusse'),
+    ['for' => 'filterstatus']
+);
 $statusoptions = '<option value="">' . get_string('jobs:filter_any', 'local_astusse') . '</option>';
 foreach ($statuschoices as $sc) {
     $selected = ($filterstatus === $sc) ? ' selected' : '';
@@ -252,18 +270,22 @@ echo '<select class="form-control" id="filterstatus" name="filterstatus"'
     . ' data-autosubmit="1">' . $statusoptions . '</select>';
 echo html_writer::end_div();
 
-echo html_writer::end_div(); // form-row
+echo html_writer::end_div(); // End of form-row.
 
 echo html_writer::start_div('local-astusse-jobs-filters-actions');
-echo html_writer::tag('button', get_string('jobs:filter_apply', 'local_astusse'),
-    ['type' => 'submit', 'class' => 'btn btn-primary btn-sm']);
+echo html_writer::tag(
+    'button',
+    get_string('jobs:filter_apply', 'local_astusse'),
+    ['type' => 'submit', 'class' => 'btn btn-primary btn-sm']
+);
 echo ' ';
 echo html_writer::link(
     new moodle_url('/local/astusse/jobs.php', ['courseid' => $courseid]),
     get_string('jobs:filter_reset', 'local_astusse'),
     ['class' => 'btn btn-outline-secondary btn-sm']
 );
-echo html_writer::tag('span',
+echo html_writer::tag(
+    'span',
     get_string('jobs:filter_total', 'local_astusse', (object)[
         'count' => $totaljobs,
         'from' => $totaljobs === 0 ? 0 : ($page * $perpage + 1),
@@ -272,10 +294,10 @@ echo html_writer::tag('span',
     ['class' => 'text-muted small ml-3 align-middle']
 );
 echo html_writer::end_div();
-echo html_writer::end_div(); // card-body
+echo html_writer::end_div(); // End of card-body.
 echo html_writer::end_tag('form');
 
-// === Table ===
+// Table.
 if (empty($jobs)) {
     $emptykey = ($filterjobid !== '' || $filtertargetcourse || $filtersourcetype !== '' || $filterstatus !== '')
         ? 'jobs:empty_filtered' : 'jobs:empty';
@@ -290,9 +312,11 @@ if (empty($jobs)) {
     echo html_writer::start_tag('thead');
     echo html_writer::start_tag('tr');
     echo html_writer::tag('th', '#');
-    foreach (['jobs:col_created', 'jobs:col_file', 'jobs:col_source',
+    foreach (
+        ['jobs:col_created', 'jobs:col_file', 'jobs:col_source',
               'jobs:col_targets', 'jobs:col_status', 'jobs:col_attempts',
-              'jobs:col_details', 'jobs:col_actions'] as $key) {
+              'jobs:col_details', 'jobs:col_actions'] as $key
+    ) {
         echo html_writer::tag('th', get_string($key, 'local_astusse'));
     }
     echo html_writer::end_tag('tr');
@@ -382,8 +406,11 @@ if (empty($jobs)) {
         echo html_writer::tag('td', s($job->filename));
         echo html_writer::tag('td', $desc['sourcelabel']);
         echo html_writer::tag('td', empty($targetlabels) ? '—' : implode(', ', $targetlabels));
-        echo html_writer::tag('td', html_writer::tag('span', $desc['statuslabel'],
-            ['class' => $desc['statusclass'], 'data-cell' => 'status']));
+        echo html_writer::tag('td', html_writer::tag(
+            'span',
+            $desc['statuslabel'],
+            ['class' => $desc['statusclass'], 'data-cell' => 'status']
+        ));
         echo html_writer::tag('td', (int)$job->attempts, ['data-cell' => 'attempts']);
         echo html_writer::tag('td', $details !== '' ? $details : '—', ['data-cell' => 'details']);
         echo html_writer::tag('td', $actions !== '' ? $actions : '—', ['data-cell' => 'actions']);

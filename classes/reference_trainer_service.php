@@ -18,13 +18,11 @@
  * Course reference trainer service for local_astusse.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse;
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Stores and validates the reference trainer configured for a course.
@@ -123,7 +121,12 @@ class reference_trainer_service {
             return [];
         }
 
-        $users = get_role_users($editingteacherrole->id, $context, false, 'u.id, u.firstname, u.lastname, u.email');
+        // Include every name field fullname() needs, otherwise it emits a debugging() notice.
+        $select = 'u.id, u.email';
+        foreach (\core_user\fields::get_name_fields() as $namefield) {
+            $select .= ', u.' . $namefield;
+        }
+        $users = get_role_users($editingteacherrole->id, $context, false, $select);
         if (!$users) {
             return [];
         }

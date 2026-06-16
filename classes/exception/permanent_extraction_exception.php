@@ -21,13 +21,14 @@
  * — retrying will never succeed because nothing exists locally.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\exception;
 
-defined('MOODLE_INTERNAL') || die();
-
+/**
+ * Exception thrown when document extraction fails permanently and must not be retried.
+ */
 class permanent_extraction_exception extends \Exception {
 }

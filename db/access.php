@@ -18,7 +18,7 @@
  * Capability definitions for local_astusse.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -26,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
     'local/astusse:usechat' => [
+        'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [
@@ -36,6 +37,7 @@ $capabilities = [
         ],
     ],
     'local/astusse:requesttoken' => [
+        'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
@@ -43,6 +45,7 @@ $capabilities = [
         ],
     ],
     'local/astusse:managetrainerscope' => [
+        'riskbitmask' => RISK_CONFIG,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [
@@ -51,6 +54,7 @@ $capabilities = [
         ],
     ],
     'local/astusse:managereferencetrainer' => [
+        'riskbitmask' => RISK_CONFIG,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [
@@ -59,6 +63,7 @@ $capabilities = [
         ],
     ],
     'local/astusse:ingestdocument' => [
+        'riskbitmask' => RISK_PERSONAL,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [

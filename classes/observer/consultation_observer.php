@@ -18,13 +18,11 @@
  * Consultation observer for the T1 spaced-repetition capture.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\observer;
-
-defined('MOODLE_INTERNAL') || die();
 
 use local_astusse\task\log_consultation_task;
 
@@ -35,7 +33,6 @@ use local_astusse\task\log_consultation_task;
  * Dedup (30s window per user+cmid) is enforced by the unique key on the queue table.
  */
 class consultation_observer {
-
     /** @var string Staging table. */
     public const QUEUE_TABLE = 'local_astusse_consultation_queue';
 

@@ -24,13 +24,11 @@
  * no-ops après le premier passage complet.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_astusse\task;
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Walks succeeded ingestion jobs and fills source_cmid/source_type
@@ -133,7 +131,11 @@ class backfill_rag_source_cmid extends \core\task\scheduled_task {
 
         mtrace(sprintf(
             'local_astusse backfill done: attempted=%d, updated=%d, already=%d, not_found=%d, errors=%d',
-            $attempted, $updated, $already, $notfound, $errors
+            $attempted,
+            $updated,
+            $already,
+            $notfound,
+            $errors
         ));
     }
 }

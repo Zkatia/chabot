@@ -18,14 +18,14 @@
  * Plugin version and metadata.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_astusse';
-$plugin->version = 2026061105;
+$plugin->version = 2026061500;
 $plugin->requires = 2023100400; // Moodle 4.5.
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = 'v0.1.0';
+$plugin->maturity = MATURITY_STABLE;
+$plugin->release = 'v1.0.0';

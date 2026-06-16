@@ -18,7 +18,7 @@
  * Settings for local_astusse plugin.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -127,7 +127,7 @@ if ($hassiteconfig) {
         local_astusse_scope_policy_settings_state_html()
     ));
 
-    // --- T2 : revision espacee (pop-up a la connexion) ---
+    // T2 : revision espacee (pop-up a la connexion).
     $settings->add(new admin_setting_heading(
         'local_astusse/review_heading',
         get_string('review_heading', 'local_astusse'),

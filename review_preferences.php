@@ -26,7 +26,7 @@
  * /api/review/preferences + /api/review/overrides, avec actions POST.
  *
  * @package     local_astusse
- * @copyright   2026
+ * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -46,13 +46,11 @@ $PAGE->set_url(new moodle_url('/local/astusse/review_preferences.php'));
 $PAGE->set_pagelayout('standard');
 $PAGE->set_title(get_string('prefs:title', 'local_astusse'));
 $PAGE->set_heading(get_string('prefs:heading', 'local_astusse'));
-$PAGE->requires->css(new moodle_url('/local/astusse/styles.css'));
+local_astusse_require_charte_assets($PAGE);
 
 $client = new \local_astusse\api_client();
 
-// =====================================================================
-// Traitement des actions POST (PRG pattern : redirect apres mutation)
-// =====================================================================
+// Traitement des actions POST (PRG pattern : redirect apres mutation).
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
@@ -96,9 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect(new moodle_url('/local/astusse/review_preferences.php'));
 }
 
-// =====================================================================
-// Lecture etat courant via API IA (defensif : si API down, on degrade)
-// =====================================================================
+// Lecture etat courant via API IA (defensif : si API down, on degrade).
 
 $prefsenabled = true;
 $snoozeduntil = null;
@@ -123,31 +119,33 @@ try {
     $apiok = false;
 }
 
-// =====================================================================
 // Resolution titres ressources cote Moodle (cmid → nom + cours).
-// =====================================================================
 
 $resolved = [];
 foreach ($overrides as $entry) {
     $cmid = (int)($entry['cmid'] ?? 0);
-    if ($cmid <= 0) continue;
+    if ($cmid <= 0) {
+        continue;
+    }
     $name = '(cmid=' . $cmid . ')';
     $coursename = '';
     $courseurl = null;
     try {
-        $cm = get_coursemodule_from_id(null, $cmid, 0, false, IGNORE_MISSING);
-        if ($cm) {
+        $cmcourseid = $DB->get_field('course_modules', 'course', ['id' => $cmid], MUST_EXIST);
+        $cminfo = get_fast_modinfo($cmcourseid, $USER->id);
+        $cm = $cminfo->get_cm($cmid);
+        // Only reveal the resource title when the user is allowed to see it.
+        if ($cm->uservisible) {
             $name = format_string($cm->name);
-            $course = get_course($cm->course);
-            if ($course) {
-                $coursename = format_string($course->shortname ?: $course->fullname);
-                $courseurl = new moodle_url('/course/view.php', ['id' => $course->id]);
-            }
+            $course = $cminfo->get_course();
+            $coursename = format_string($course->shortname ?: $course->fullname);
+            $courseurl = new moodle_url('/course/view.php', ['id' => $course->id]);
         }
     } catch (\Throwable $e) {
-        // Ressource probablement supprimee depuis. On garde le placeholder.
+        // Ressource probablement supprimee depuis : on garde le placeholder.
+        debugging('local_astusse: resource lookup failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
-    // updatedAt arrive de l'API en ISO-8601 (Instant Jackson). strtotime gere ce
+    // UpdatedAt arrive de l'API en ISO-8601 (Instant Jackson). strtotime gere ce
     // format ; 0 si parsing echoue.
     $updatedts = isset($entry['updatedAt']) ? (int)strtotime((string)$entry['updatedAt']) : 0;
     $resolved[] = [
@@ -165,9 +163,7 @@ foreach ($overrides as $entry) {
 $cancelled = array_values(array_filter($resolved, fn($r) => $r['state'] === 'cancelled'));
 $mastered = array_values(array_filter($resolved, fn($r) => $r['state'] === 'mastered'));
 
-// =====================================================================
-// Render
-// =====================================================================
+// Render.
 
 /**
  * Render d'une mini-carte ressource (cancelled ou mastered).
@@ -213,7 +209,8 @@ function local_astusse_render_resource_card(array $r): string {
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'reactivate'])
     . html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'cmid', 'value' => $r['cmid']])
-    . html_writer::tag('button',
+    . html_writer::tag(
+        'button',
         html_writer::tag('i', '', ['class' => 'fa fa-undo', 'aria-hidden' => 'true'])
             . ' ' . get_string('prefs:reactivate_button', 'local_astusse'),
         ['type' => 'submit', 'class' => 'btn btn-sm btn-outline-primary']
@@ -223,7 +220,10 @@ function local_astusse_render_resource_card(array $r): string {
     return html_writer::div(
         html_writer::div(
             html_writer::tag('span', '', ['class' => $statedotclass, 'aria-hidden' => 'true'])
-            . html_writer::tag('i', '', ['class' => 'fa ' . $stateicon . ' local-astusse-prefs-resource-icon', 'aria-hidden' => 'true'])
+            . html_writer::tag('i', '', [
+                'class' => 'fa ' . $stateicon . ' local-astusse-prefs-resource-icon',
+                'aria-hidden' => 'true',
+            ])
             . html_writer::div(
                 html_writer::tag('strong', $r['name'], ['class' => 'local-astusse-prefs-resource-name'])
                 . html_writer::div($coursehtml . $whenhtml, 'local-astusse-prefs-resource-metas'),
@@ -238,7 +238,7 @@ function local_astusse_render_resource_card(array $r): string {
 
 echo $OUTPUT->header();
 
-echo html_writer::start_div('local-astusse-prefs-page');
+echo html_writer::start_div('local-astusse-charte local-astusse-prefs-page');
 
 if (!$apiok) {
     echo $OUTPUT->notification(get_string('prefs:api_error', 'local_astusse'), 'error');
@@ -250,9 +250,7 @@ if (!$apiok) {
     return;
 }
 
-// ---------------------------------------------------------------------------
 // Hero card : etat global + action principale (toggle).
-// ---------------------------------------------------------------------------
 
 $kickerlabel = $prefsenabled
     ? get_string('prefs:status_active', 'local_astusse')
@@ -266,13 +264,17 @@ $herodesc = $prefsenabled
 
 echo html_writer::start_div('local-astusse-prefs-hero' . ($prefsenabled ? '' : ' disabled'));
 echo html_writer::start_div('local-astusse-prefs-hero-left');
-echo html_writer::tag('span',
+echo html_writer::tag(
+    'span',
     html_writer::tag('i', '', ['class' => 'fa fa-' . ($prefsenabled ? 'bell' : 'bell-slash'), 'aria-hidden' => 'true'])
         . ' ' . $kickerlabel,
     ['class' => $kickerclass]
 );
-echo html_writer::tag('h3', get_string('prefs:hero_title', 'local_astusse'),
-    ['class' => 'local-astusse-prefs-hero-title']);
+echo html_writer::tag(
+    'h3',
+    get_string('prefs:hero_title', 'local_astusse'),
+    ['class' => 'local-astusse-prefs-hero-title']
+);
 echo html_writer::tag('p', $herodesc, ['class' => 'local-astusse-prefs-hero-desc']);
 echo html_writer::end_div();
 
@@ -289,7 +291,8 @@ $btnlabel = $prefsenabled
     : get_string('prefs:enable_button', 'local_astusse');
 $btnicon = $prefsenabled ? 'fa-pause-circle' : 'fa-play-circle';
 $btnclass = $prefsenabled ? 'btn btn-outline-secondary' : 'btn btn-primary';
-echo html_writer::tag('button',
+echo html_writer::tag(
+    'button',
     html_writer::tag('i', '', ['class' => 'fa ' . $btnicon, 'aria-hidden' => 'true']) . ' ' . $btnlabel,
     ['type' => 'submit', 'class' => $btnclass]
 );
@@ -299,7 +302,6 @@ echo html_writer::end_div();
 // ---------------------------------------------------------------------------
 // Bandeau snooze actif (visible UNIQUEMENT quand l'apprenant est encore actif
 // mais a un snooze en cours — sinon ce signal n'a pas de sens).
-// ---------------------------------------------------------------------------
 
 if ($prefsenabled && $snoozeduntil) {
     $snoozedisplay = userdate(strtotime($snoozeduntil), '%A %d %B %Y à %Hh%M');
@@ -307,26 +309,29 @@ if ($prefsenabled && $snoozeduntil) {
         html_writer::tag('i', '', ['class' => 'fa fa-pause-circle local-astusse-prefs-snooze-icon', 'aria-hidden' => 'true'])
         . html_writer::div(
             html_writer::tag('strong', get_string('prefs:snooze_active_title', 'local_astusse'))
-            . html_writer::tag('span', get_string('prefs:snooze_active_desc', 'local_astusse', $snoozedisplay),
-                ['class' => 'local-astusse-prefs-snooze-desc']),
+            . html_writer::tag(
+                'span',
+                get_string('prefs:snooze_active_desc', 'local_astusse', $snoozedisplay),
+                ['class' => 'local-astusse-prefs-snooze-desc']
+            ),
             'local-astusse-prefs-snooze-body'
         ),
         'local-astusse-prefs-snooze-banner'
     );
 }
 
-// ---------------------------------------------------------------------------
 // Section ressources annulees (cancelled).
-// ---------------------------------------------------------------------------
 
 echo html_writer::start_div('local-astusse-prefs-card');
-echo html_writer::tag('h3',
+echo html_writer::tag(
+    'h3',
     html_writer::tag('i', '', ['class' => 'fa fa-bookmark-o', 'aria-hidden' => 'true'])
         . ' ' . get_string('prefs:cancelled_heading', 'local_astusse'),
     ['class' => 'local-astusse-prefs-section-title']
 );
 if (empty($cancelled)) {
-    echo html_writer::tag('p',
+    echo html_writer::tag(
+        'p',
         get_string('prefs:cancelled_empty', 'local_astusse'),
         ['class' => 'local-astusse-prefs-empty']
     );
@@ -339,18 +344,18 @@ if (empty($cancelled)) {
 }
 echo html_writer::end_div();
 
-// ---------------------------------------------------------------------------
 // Section ressources maitrisees (mastered).
-// ---------------------------------------------------------------------------
 
 echo html_writer::start_div('local-astusse-prefs-card');
-echo html_writer::tag('h3',
+echo html_writer::tag(
+    'h3',
     html_writer::tag('i', '', ['class' => 'fa fa-trophy', 'aria-hidden' => 'true'])
         . ' ' . get_string('prefs:mastered_heading', 'local_astusse'),
     ['class' => 'local-astusse-prefs-section-title']
 );
 if (empty($mastered)) {
-    echo html_writer::tag('p',
+    echo html_writer::tag(
+        'p',
         get_string('prefs:mastered_empty', 'local_astusse'),
         ['class' => 'local-astusse-prefs-empty']
     );
@@ -363,6 +368,6 @@ if (empty($mastered)) {
 }
 echo html_writer::end_div();
 
-echo html_writer::end_div(); // local-astusse-prefs-page
+echo html_writer::end_div(); // End of local-astusse-prefs-page.
 
 echo $OUTPUT->footer();
