@@ -27,7 +27,9 @@ define([], function() {
         var filterBtns = document.querySelectorAll('.local-astusse-filter-btn');
         filterBtns.forEach(function(btn) {
             btn.addEventListener('click', function() {
-                filterBtns.forEach(function(b) { b.classList.remove('active'); });
+                filterBtns.forEach(function(b) {
+                    b.classList.remove('active');
+                });
                 btn.classList.add('active');
                 var filter = btn.getAttribute('data-filter');
                 document.querySelectorAll('.local-astusse-resource-row').forEach(function(row) {

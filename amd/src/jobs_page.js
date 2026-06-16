@@ -179,6 +179,7 @@ define([], function() {
             if (!hasPendingJobs()) {
                 stopPolling();
             }
+            return;
         }).catch(function(err) {
             // Stop polling on repeated failures to avoid hammering.
             // eslint-disable-next-line no-console
@@ -218,8 +219,12 @@ define([], function() {
                 return;
             }
             // First poll shortly after load to catch quick transitions, then regular interval.
-            setTimeout(function() { poll(endpoint); }, 1000);
-            pollTimer = setInterval(function() { poll(endpoint); }, intervalMs);
+            setTimeout(function() {
+                poll(endpoint);
+            }, 1000);
+            pollTimer = setInterval(function() {
+                poll(endpoint);
+            }, intervalMs);
         }
     };
 });
