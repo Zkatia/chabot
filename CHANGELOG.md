@@ -1,45 +1,44 @@
 # Changelog
 
-Toutes les modifications notables de `local_astusse` sont documentées dans ce fichier.
+All notable changes to `local_astusse` are documented in this file.
 
-Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
-et le projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] - 2026-06-16
 
-Première version publique, stable, mise en conformité avec le Moodle plugins directory.
+First public, stable release, brought into compliance with the Moodle plugins directory.
 
-### Fonctionnalités
-- **Émetteur JWT** : génération de jetons utilisateur RS256 et exposition du JWKS
-  (`/local/astusse/jwks.php`) pour l'authentification auprès de la plateforme IA ASTUSSE.
-- **Chat apprenant** : assistant IA de cours (modes explicatif et socratique), avec
-  transmission du contexte cours et du formateur de référence.
-- **Ingestion documentaire** : envoi asynchrone de ressources de cours et de fichiers
-  vers le service RAG (tâches adhoc, suivi des jobs, relance, purge à 30 jours).
-  Extraction de texte SCORM (Articulate Rise/Storyline, fallback générique) et H5P
-  (`mod_h5pactivity`).
-- **Formateur de référence** : configuration par cours du formateur servant de référence IA.
-- **Périmètre IA formateur** : réglage global du scope (`course`, `trainer`, `platform`).
-- **Révision espacée** : pop-up de quiz interleavé piloté par l'algorithme FSRS-5, avec
-  contrôle apprenant (snooze, annulation, opt-out, maîtrise automatique).
+### Features
+- **JWT issuer**: generates RS256 user tokens and exposes the JWKS
+  (`/local/astusse/jwks.php`) for authentication against the ASTUSSE AI platform.
+- **Learner chat**: course AI assistant (explanatory and Socratic modes), passing the
+  course context and the reference trainer.
+- **Document ingestion**: asynchronous submission of course resources and files to the
+  RAG service (adhoc tasks, job tracking, retry, 30-day purge). Text extraction from
+  SCORM (Articulate Rise/Storyline, generic fallback) and H5P (`mod_h5pactivity`).
+- **Reference trainer**: per-course configuration of the trainer used as the AI reference.
+- **Trainer AI scope**: global setting for the scope (`course`, `trainer`, `platform`).
+- **Spaced repetition**: interleaved quiz pop-up driven by the FSRS-5 algorithm, with
+  learner control (snooze, cancellation, opt-out, automatic mastery).
 
-### Conformité & sécurité
-- Implémentation complète de la **Privacy API** (métadonnées des données stockées et
-  transmises à la gateway, préférences utilisateur).
-- **Bibliothèques tierces embarquées localement** (Marked, polices Geist) avec
-  `thirdpartylibs.xml` ; suppression de tout appel à des ressources externes (CDN, fonts).
-- **`riskbitmask`** déclaré sur les capabilities ; correction d'une fuite de visibilité
-  des ressources de cours (`uservisible`).
-- Durcissement CSRF de `token.php` (suppression du repli `sesskey()` côté serveur).
-- Mise au standard de code Moodle (`moodle-cs` : 0 erreur / 0 warning), PHPDoc complet,
-  tests PHPUnit, lint JS/CSS.
+### Compliance & security
+- Full implementation of the **Privacy API** (metadata for stored data and data sent to
+  the gateway, plus user preferences).
+- **Third-party libraries bundled locally** (Marked, Geist fonts) with
+  `thirdpartylibs.xml`; removal of all calls to external resources (CDNs, fonts).
+- **`riskbitmask`** declared on capabilities; fixed a course resource visibility leak
+  (`uservisible`).
+- CSRF hardening of `token.php` (removed the server-side `sesskey()` fallback).
+- Brought up to the Moodle coding standard (`moodle-cs`: 0 errors / 0 warnings), complete
+  PHPDoc, PHPUnit tests, JS/CSS linting.
 
-### Intégration continue
-- Workflow GitHub Actions (`moodle-plugin-ci`) validé sur **PHP 8.1 / 8.2 / 8.3**
-  × **PostgreSQL / MariaDB**, sous **Moodle 4.5**.
+### Continuous integration
+- GitHub Actions workflow (`moodle-plugin-ci`) validated on **PHP 8.1 / 8.2 / 8.3**
+  × **PostgreSQL / MariaDB**, under **Moodle 4.5**.
 
-### Prérequis
-- Moodle 4.5 ou supérieur (`requires` 2023100400), PHP 8.1+.
-- Une plateforme IA ASTUSSE accessible (paramètre admin `gateway_base_url`).
+### Requirements
+- Moodle 4.5 or later (`requires` 2023100400), PHP 8.1+.
+- A reachable ASTUSSE AI platform (admin setting `gateway_base_url`).
 
 [1.0.0]: https://moodle.org/plugins/local_astusse
