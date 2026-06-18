@@ -14,18 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_astusse;
+
 /**
- * Plugin version and metadata.
+ * Hook callbacks for local_astusse.
  *
  * @package     local_astusse
  * @copyright   2026 Ingenium Digital Learning
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'local_astusse';
-$plugin->version = 2026061800;
-$plugin->requires = 2023100400; // Moodle 4.5.
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = 'v1.0.1';
+class hook_callbacks {
+    /**
+     * Inject the spaced-repetition pop-up loader during footer generation.
+     *
+     * Replaces the legacy local_astusse_before_footer() callback with the
+     * core\hook\output\before_footer_html_generation hook (Moodle 4.4+).
+     *
+     * @param \core\hook\output\before_footer_html_generation $hook
+     * @return void
+     */
+    public static function before_footer_html_generation(
+        \core\hook\output\before_footer_html_generation $hook
+    ): void {
+        global $CFG;
+        require_once($CFG->dirroot . '/local/astusse/lib.php');
+        local_astusse_inject_review_popup();
+    }
+}

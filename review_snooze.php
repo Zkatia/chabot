@@ -61,7 +61,7 @@ if ($status !== 204 && $status !== 200) {
 }
 
 // T5 (bypass post-snooze) : on garde un timestamp local d'expiration du snooze
-// pour permettre au hook before_footer (lib.php) de re-injecter le JS quand
+// pour permettre au hook before_footer_html_generation (lib.php) de re-injecter le JS quand
 // l'apprenant continue de naviguer apres l'expiration des 4h. Sans cette pref,
 // le garde-fou T2 "1 popup par login" empecherait le pop-up de reapparaitre
 // sans logout/login. Source de verite reelle : l'API IA. Cette pref est juste

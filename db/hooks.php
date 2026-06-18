@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata.
+ * Hook callbacks for local_astusse.
  *
  * @package     local_astusse
  * @copyright   2026 Ingenium Digital Learning
@@ -24,8 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_astusse';
-$plugin->version = 2026061800;
-$plugin->requires = 2023100400; // Moodle 4.5.
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = 'v1.0.1';
+$callbacks = [
+    [
+        'hook' => \core\hook\output\before_footer_html_generation::class,
+        'callback' => \local_astusse\hook_callbacks::class . '::before_footer_html_generation',
+    ],
+];

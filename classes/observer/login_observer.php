@@ -26,7 +26,7 @@ namespace local_astusse\observer;
 
 /**
  * Arms a per-session flag at login. The flag is consumed by
- * local_astusse_before_footer() to inject the pop-up loader on the first
+ * local_astusse_inject_review_popup() to inject the pop-up loader on the first
  * page rendered after login (typically the dashboard /my).
  */
 class login_observer {

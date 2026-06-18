@@ -2617,22 +2617,23 @@ function local_astusse_describe_ingest_job(\stdClass $job): array {
  * T2 : inject the spaced-repetition pop-up loader on the first page rendered
  * after login (typically the dashboard /my).
  *
- * Called automatically by Moodle during footer generation. The login observer
- * arms a session flag ; we consume it here so the loader is injected once per
- * login. The actual eligibility check happens asynchronously in popup_check.php,
- * so the page render never waits on the AI API.
+ * Invoked from the core\hook\output\before_footer_html_generation hook during
+ * footer generation (see classes/hook_callbacks.php). The login observer arms a
+ * session flag ; we consume it here so the loader is injected once per login.
+ * The actual eligibility check happens asynchronously in popup_check.php, so the
+ * page render never waits on the AI API.
  *
- * @return string Always empty — JS is added via $PAGE->requires.
+ * @return void JS is added via $PAGE->requires.
  */
-function local_astusse_before_footer(): string {
+function local_astusse_inject_review_popup(): void {
     global $PAGE, $SESSION, $CFG;
 
     // Real logged-in users only, on standard HTML pages.
     if (!isloggedin() || isguestuser()) {
-        return '';
+        return;
     }
     if (CLI_SCRIPT || (defined('AJAX_SCRIPT') && AJAX_SCRIPT) || (defined('WS_SERVER') && WS_SERVER)) {
-        return '';
+        return;
     }
 
     // T5 (bypass post-snooze) : on injecte le JS dans deux cas :
@@ -2649,7 +2650,7 @@ function local_astusse_before_footer(): string {
     $snoozeexpired = ($snoozeuntil > 0 && $snoozeuntil <= time());
 
     if (!$flagset && !$snoozeexpired) {
-        return '';
+        return;
     }
     if ($flagset) {
         unset($SESSION->{\local_astusse\observer\login_observer::SESSION_FLAG});
@@ -2660,7 +2661,7 @@ function local_astusse_before_footer(): string {
 
     // Global opt-out (preference managed in T5 ; default off).
     if (get_user_preferences('local_astusse_review_optout', 0)) {
-        return '';
+        return;
     }
 
     // The loader reads M.cfg.wwwroot + M.cfg.sesskey itself, so no extra config
@@ -2679,8 +2680,6 @@ function local_astusse_before_footer(): string {
     $PAGE->requires->js(
         new moodle_url('/local/astusse/js/spaced_repetition_popup.js', ['v' => $pluginversion])
     );
-
-    return '';
 }
 
 /**

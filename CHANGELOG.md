@@ -5,6 +5,14 @@ All notable changes to `local_astusse` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-06-18
+
+### Changed
+- Migrated the legacy `before_footer` callback to the
+  `core\hook\output\before_footer_html_generation` hook (Moodle 4.4+), removing a
+  deprecation notice. The spaced-repetition pop-up injection is unchanged
+  functionally (`db/hooks.php` + `classes/hook_callbacks.php`).
+
 ## [1.0.0] - 2026-06-16
 
 First public, stable release, brought into compliance with the Moodle plugins directory.
@@ -41,4 +49,5 @@ First public, stable release, brought into compliance with the Moodle plugins di
 - Moodle 4.5 or later (`requires` 2023100400), PHP 8.1+.
 - A reachable ASTUSSE AI platform (admin setting `gateway_base_url`).
 
+[1.0.1]: https://moodle.org/plugins/local_astusse
 [1.0.0]: https://moodle.org/plugins/local_astusse
