@@ -90,7 +90,7 @@ La whitelist JSON (`local_astusse_collect_json_texts()`) reconnaît les clés te
 
 #### Activités H5P reconnues
 
-Seule la variante `mod_h5pactivity` est supportée (pas la banque de contenus). Voir [NOTE_INGESTION_H5P.md](../../../NOTE_INGESTION_H5P.md) pour le détail du pipeline et la liste des libraries H5P testées.
+Seule la variante `mod_h5pactivity` est supportée (pas la banque de contenus). Le pipeline parcourt le contenu H5P de l'activité (JSON `content.json` et bibliothèques associées) pour en extraire le texte pédagogique via le même JSON walker que les autres sources.
 
 Chaque document sélectionné donne lieu à :
 
@@ -116,7 +116,7 @@ Rétention : les jobs terminés (`succeeded` ou `failed`) plus anciens que **30 
 
 #### Limite d'upload
 
-Le plafond Moodle est fixé dans [lib.php](local/astusse/lib.php) via `local_astusse_get_ingest_max_upload_bytes()` (50 Mo). Il doit être ≥ à la limite backend `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` (défaut 50 Mo) pour éviter de stocker inutilement des fichiers qui seraient refusés. Si l'admin backend baisse la limite, le plugin reçoit un HTTP 413 propre du `GlobalExceptionHandler` et le job bascule immédiatement en `failed` (pas de retry).
+Le plafond Moodle est fixé dans [lib.php](lib.php) via `local_astusse_get_ingest_max_upload_bytes()` (50 Mo). Il doit être ≥ à la limite backend `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` (défaut 50 Mo) pour éviter de stocker inutilement des fichiers qui seraient refusés. Si l'admin backend baisse la limite, le plugin reçoit un HTTP 413 propre du `GlobalExceptionHandler` et le job bascule immédiatement en `failed` (pas de retry).
 
 ## Compatibilité backend
 
@@ -134,8 +134,6 @@ php admin/cli/upgrade.php --non-interactive
 php local/astusse/cli/generate_keys.php
 ```
 
-## Recette fonctionnelle
+## Licence
 
-La recette de référence est :
-
-- [TEST_A_Z_INGESTION_SCOPE_CHAT.md](C:/workspace/Astusse/TEST_A_Z_INGESTION_SCOPE_CHAT.md)
+2026 Ingenium Digital Learning — GNU GPL v3 ou ultérieure.
