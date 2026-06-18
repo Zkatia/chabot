@@ -193,6 +193,8 @@ function local_astusse_render_chat_ui(array $config): void {
         'jsonConfig'           => json_encode($config, $jsonflags),
         'fontsCssUrl'          => (new moodle_url('/local/astusse/fonts/geist.css'))->out(false),
         'markedUrl'            => (new moodle_url('/local/astusse/thirdparty/marked/marked.min.js'))->out(false),
+        // Loaded via a template <script> tag rather than an AMD module on purpose: the chat is a
+        // self-contained single-page application bootstrapped from jsonConfig, with no AMD deps.
         'chatAppJsUrl'         => (new moodle_url('/local/astusse/js/chat_app.js'))->out(false),
     ];
 

@@ -29,11 +29,9 @@ header('Content-Type: application/json');
 
 require_login();
 
+// The caller must supply its own sesskey: never fall back to the server-side
+// sesskey() value, which would defeat the CSRF protection on this endpoint.
 $sesskey = optional_param('sesskey', '', PARAM_RAW);
-if (empty($sesskey)) {
-    $sesskey = sesskey();
-}
-
 if (empty($sesskey) || !confirm_sesskey($sesskey)) {
     http_response_code(400);
     echo json_encode([

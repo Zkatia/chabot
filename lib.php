@@ -2673,6 +2673,9 @@ function local_astusse_before_footer(): string {
     // popup_check.php (champ "strings"), donc aucune dependance a M.str / cache
     // navigateur sur le bundle strings JS.
     $pluginversion = (string)get_config('local_astusse', 'version');
+    // Loaded as a plain versioned script rather than an AMD module on purpose: it is a
+    // self-contained pop-up with no AMD dependencies, and the explicit ?v=<version> cache
+    // buster gives finer control over browser caching than the shared AMD bundle.
     $PAGE->requires->js(
         new moodle_url('/local/astusse/js/spaced_repetition_popup.js', ['v' => $pluginversion])
     );

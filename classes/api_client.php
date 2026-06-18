@@ -805,6 +805,9 @@ class api_client {
             'file' => new \CURLFile($filepath, $mimetype, $filename),
         ];
 
+        // Native cURL is intentional: the destination is the admin-configured, trusted ASTUSSE
+        // gateway, frequently an internal host that Moodle's \curl SSRF guard would block, and this
+        // upload needs raw multipart/form-data handling not exposed cleanly by the Moodle wrapper.
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
@@ -862,6 +865,9 @@ class api_client {
         $url = $this->baseurl . $path;
         $headers = $this->build_request_headers($token, 'application/json', $payload !== null, $path);
 
+        // Native cURL is intentional: the destination is the admin-configured, trusted ASTUSSE
+        // gateway, frequently an internal host that Moodle's \curl SSRF guard would block, and this
+        // client needs arbitrary HTTP verbs (GET/POST/PUT/DELETE) on a single code path.
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
@@ -931,6 +937,9 @@ class api_client {
         $forwardedbytes = 0;
         $abortedbycallback = false;
 
+        // Native cURL is required here: this is a real-time SSE relay using CURLOPT_WRITEFUNCTION to
+        // forward chunks as they arrive, which Moodle's buffered \curl wrapper does not support. The
+        // destination is the admin-configured, trusted ASTUSSE gateway.
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
